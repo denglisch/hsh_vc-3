@@ -3,6 +3,7 @@
 
 import numpy as np
 #TODO: needs return?
+#TODO: same for non-standard
 
 def normalized_decomposition_2d(image_values):
     # Haar decomposition of a 2D array inplace
