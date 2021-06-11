@@ -8,7 +8,8 @@ import math
 #TODO: needs return? -->YES
 #TODO: same for non-standard
 
-
+mini=0
+maxi=0
 def kd_test_decomp_recon_on_1d_array():
     c=np.array([9.,7.,2.,6.])
     print(c)
@@ -30,23 +31,31 @@ def kd_test_decomp_recon_on_image():
     image_values=image_values.astype(np.float64)
     #print(image_values[0])
 
-    # std decom
+    # std decomp
     print("decomp")
-    image_values=normalized_decomposition_2d(image_values, True)
+    global mini
+    mini=0
+    global maxi
+    maxi=0
+    image_values=normalized_decomposition_2d(image_values, True, False, True)
     #print(image_values[0])
     # save img
-    #np.add(image_values, 128.0)
+
+    #image_values=np.add(image_values, 100.0)
+
     copy=np.copy(image_values)
     copy=copy.astype(np.uint8)
     im = Image.fromarray(copy)
     im.save("img/Lenna_DECOMP.png")
+    print("min: {} max: {}".format(mini,maxi))
 
-    #np.subtract(image_values, 128.0)
+    #image_values=np.subtract(image_values, 100.0)
+
     #image_values=image_values.astype(np.double)
 
     # std recon
     print("recon")
-    image_values=normalized_reconstruction_2d(image_values, True)
+    image_values=normalized_reconstruction_2d(image_values, True, False, True)
     #print(image_values[0])
     # save img
     image_values=image_values.astype(np.uint8)
@@ -56,24 +65,62 @@ def kd_test_decomp_recon_on_image():
     return
 
 
-def normalized_decomposition_2d(image_values, normalized=True):
+def normalized_decomposition_2d(image_values, normalized=True, standard=True, nonstandard=False):
     # Haar decomposition of a 2D array inplace
     #print(image_values.shape)
-    for i in range(0, image_values.shape[0]):
-        image_values[i] = _normalized_decomposition(image_values[i], normalized)
-    for i in range(0, image_values.shape[1]):
-        image_values[:, i] = _normalized_decomposition(image_values[:, i], normalized)
+    if standard:
+        for i in range(0, image_values.shape[0]):
+            image_values[i] = _normalized_decomposition(image_values[i], normalized)
+        for i in range(0, image_values.shape[1]):
+            image_values[:, i] = _normalized_decomposition(image_values[:, i], normalized)
+        return image_values
+
+    if nonstandard:
+        if image_values.shape[0]<image_values.shape[1]:
+            mindim=image_values.shape[0]
+        else:
+            mindim=image_values.shape[1]
+        image_values=np.divide(image_values,mindim)
+        until=mindim
+        while(until>=2):
+            for i in range(0, int(until)):
+                image_values[i] = _normalized_decomposition_step(image_values[i], until, normalized)
+            for i in range(0, int(until)):
+                image_values[:, i] = _normalized_decomposition_step(image_values[:, i], until, normalized)
+            until/=2
+        return image_values
+
+    print("nothing to do ;)")
     return image_values
 
 
-def normalized_reconstruction_2d(image_values, normalized=True):
+def normalized_reconstruction_2d(image_values, normalized=True, standard=True, nonstandard=False):
     # Haar reconstruction of a 2D array inplace
     #print(image_values.shape)
 
-    for i in range(0, image_values.shape[1]):
-        image_values[:, i] = _normalized_reconstruction(image_values[:, i], normalized)
-    for i in range(0, image_values.shape[0]):
-        image_values[i] = _normalized_reconstruction(image_values[i], normalized)
+    if standard:
+        for i in range(0, image_values.shape[1]):
+            image_values[:, i] = _normalized_reconstruction(image_values[:, i], normalized)
+        for i in range(0, image_values.shape[0]):
+            image_values[i] = _normalized_reconstruction(image_values[i], normalized)
+        return image_values
+
+    if nonstandard:
+        if image_values.shape[0]<image_values.shape[1]:
+            mindim=image_values.shape[0]
+        else:
+            mindim=image_values.shape[1]
+        until=2
+        while(until<=mindim):
+            for i in range(0, int(until)):
+                image_values[:, i] = _normalized_reconstruction_step(image_values[:, i], until, normalized)
+            for i in range(0, int(until)):
+                image_values[i] = _normalized_reconstruction_step(image_values[i], until, normalized)
+            until*=2
+        image_values = np.multiply(image_values, mindim)
+        return image_values
+
+    print("nothing to do ;)")
     return image_values
 
 
@@ -116,6 +163,13 @@ def _normalized_decomposition_step(coefficients, until, normalized=True):
         detail=(val1-val2)*div_sqrt_2
         copy[i]=avg
         copy[detail_i+i]=detail
+
+        global mini
+        global maxi
+        if avg<mini:mini=avg
+        if detail<mini:mini=detail
+        if avg>maxi:maxi=avg
+        if detail>maxi:maxi=detail
 
     # apply changes to original array
     coefficients=copy
