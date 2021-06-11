@@ -1,12 +1,18 @@
-import Haar
+import Haar as Haar
 
 #TODO: @Dennis: Zwischenschritte: alle? oder reicht das so?
 
 #TODO CR
 # main & params
 # load image
+#   Info: https://note.nkmk.me/en/python-numpy-image-processing/
+#   image_values = np.array(Image.open('img/Lenna.png'))
 # convert into grayscale
+#    im_gray = np.array(Image.open('img/Lenna.png').convert('L'))
 # convert into YUV
+#   from skimage.color import rgb2yuv
+#   img = Image.open('test.jpeg')
+#   img_yuv = rgb2yuv(img)
 # function calls with params
 # render images as figs in plt
 #   FUNCTION render 8
@@ -18,6 +24,7 @@ import Haar
 
 image_path=None
 def main():
+    Haar.kd_test()
     #wirte image_path var
     #TODO: get params
     # -decom. n recon. haar_2d
