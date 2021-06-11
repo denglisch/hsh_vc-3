@@ -19,23 +19,37 @@ def kd_test_decomp_recon_on_1d_array():
     c=_normalized_reconstruction(c, False)
     print(c)
     return
+
+
 def kd_test_decomp_recon_on_image():
     # load lenna as 2d grayscale array
     image_values = np.array(Image.open('img/Lenna.png').convert('L'))
-    image_values=image_values.astype(np.double)
+
+    #print(image_values[0][0].dtype)
+    # make sure, values can be negative (default uint)
+    image_values=image_values.astype(np.float64)
+    #print(image_values[0])
 
     # std decom
     print("decomp")
-    image_values=normalized_decomposition_2d(image_values)
+    image_values=normalized_decomposition_2d(image_values, True)
+    #print(image_values[0])
     # save img
-    #im = Image.fromarray(image_values)
-    #im.save("img/Lenna_DECOMP.png")
+    #np.add(image_values, 128.0)
+    copy=np.copy(image_values)
+    copy=copy.astype(np.uint8)
+    im = Image.fromarray(copy)
+    im.save("img/Lenna_DECOMP.png")
+
+    #np.subtract(image_values, 128.0)
+    #image_values=image_values.astype(np.double)
 
     # std recon
     print("recon")
-    image_values=normalized_reconstruction_2d(image_values)
+    image_values=normalized_reconstruction_2d(image_values, True)
+    #print(image_values[0])
     # save img
-    image_values=image_values.astype(np.uintc)
+    image_values=image_values.astype(np.uint8)
     im = Image.fromarray(image_values)
     im.save("img/Lenna_RECON.png")
 
@@ -44,25 +58,17 @@ def kd_test_decomp_recon_on_image():
 
 def normalized_decomposition_2d(image_values, normalized=True):
     # Haar decomposition of a 2D array inplace
-    print(image_values.shape)
+    #print(image_values.shape)
     for i in range(0, image_values.shape[0]):
         image_values[i] = _normalized_decomposition(image_values[i], normalized)
     for i in range(0, image_values.shape[1]):
         image_values[:, i] = _normalized_decomposition(image_values[:, i], normalized)
     return image_values
 
-    for i, row in enumerate(image_values):
-        image_values[i] = _normalized_decomposition(row, normalized)
-
-    for i, col in enumerate(image_values.T):
-        image_values[:, i] = _normalized_decomposition(col, normalized)
-
-    return image_values
-
 
 def normalized_reconstruction_2d(image_values, normalized=True):
     # Haar reconstruction of a 2D array inplace
-    print(image_values.shape)
+    #print(image_values.shape)
 
     for i in range(0, image_values.shape[1]):
         image_values[:, i] = _normalized_reconstruction(image_values[:, i], normalized)
@@ -70,13 +76,6 @@ def normalized_reconstruction_2d(image_values, normalized=True):
         image_values[i] = _normalized_reconstruction(image_values[i], normalized)
     return image_values
 
-    for i, col in enumerate(image_values.T):
-        image_values[:, i] = _normalized_reconstruction(col, normalized)
-
-    for i, row in enumerate(image_values):
-        image_values[i] = _normalized_reconstruction(row, normalized)
-
-    return image_values
 
 def _normalized_decomposition(coefficients, normalized=True):
     # Haar decomposition of array inplace
@@ -111,9 +110,8 @@ def _normalized_decomposition_step(coefficients, until, normalized=True):
 
     detail_i=int((until)/2)
     for i in range(0,detail_i):
-        # make sure, values can be negative (default uint)
-        val1=int(coefficients[2*i])
-        val2=int(coefficients[2*i+1])
+        val1=coefficients[2*i]
+        val2=coefficients[2*i+1]
         avg=(val1+val2)*div_sqrt_2
         detail=(val1-val2)*div_sqrt_2
         copy[i]=avg
@@ -153,9 +151,8 @@ def _normalized_reconstruction_step(coefficients, until, normalized=True):
 
     detail_index = int((until) / 2)
     for i in range(0, detail_index):
-        # make sure, values can be negative (default uint)
-        avg = int(coefficients[i])
-        detail = int(coefficients[detail_index+i])
+        avg = coefficients[i]
+        detail = coefficients[detail_index+i]
         val1 = (avg+detail)*div_sqrt_2
         val2 = (avg-detail)*div_sqrt_2
         copy[2*i] = val1
