@@ -37,13 +37,16 @@ def kd_test_decomp_recon_on_image():
     mini=0
     global maxi
     maxi=0
-    image_values=normalized_decomposition_2d(image_values, True, False, True)
+    image_values=decomposition_2d(image_values, normalized=True, standard=False)
     #print(image_values[0])
     # save img
 
     #image_values=np.add(image_values, 100.0)
 
     copy=np.copy(image_values)
+    copy=np.multiply(copy, _read_min_dim(image_values))
+    #copy=np.add(copy, 128.0)
+    #print(copy[10])
     copy=copy.astype(np.uint8)
     im = Image.fromarray(copy)
     im.save("img/Lenna_DECOMP.png")
@@ -55,7 +58,7 @@ def kd_test_decomp_recon_on_image():
 
     # std recon
     print("recon")
-    image_values=normalized_reconstruction_2d(image_values, True, False, True)
+    image_values=reconstruction_2d(image_values, normalized=True, standard=False)
     #print(image_values[0])
     # save img
     image_values=image_values.astype(np.uint8)
@@ -64,8 +67,79 @@ def kd_test_decomp_recon_on_image():
 
     return
 
+def kd_test_compression_on_image():
+    # load lenna as 2d grayscale array
+    image_values = np.array(Image.open('img/Lenna.png').convert('L'))
 
-def normalized_decomposition_2d(image_values, normalized=True, standard=True, nonstandard=False):
+    # make sure, values can be negative (default uint)
+    image_values=image_values.astype(np.float64)
+
+    global mini
+    mini=0
+    global maxi
+    maxi=0
+
+    print("compression")
+    image_values=compression(image_values)
+
+    # save img
+    image_values=image_values.astype(np.uint8)
+    im = Image.fromarray(image_values)
+    im.save("img/Lenna_COMP.png")
+
+    return
+
+def compression(image_values):
+    # return compressed image_values
+
+    # normalized 2d decomp.
+    image_values=decomposition_2d(image_values, normalized=True, standard=True)
+    # one array of coefficients
+    coefficients=image_values.flatten()
+    # sort by decreasing magnitude
+    # commented since it can become very slow
+    # coefficients[::-1].sort()
+
+    # either by max error
+    thres_min=np.abs(coefficients).min() # abs(coefficients[len(coefficients)-1])
+    thres_max=np.abs(coefficients).max() # abs(coefficients[0])
+    threshold = (thres_min + thres_max) / 2.
+    epsilon_squared=20000000.0
+    # find threashold
+    found_thres=False
+    while not found_thres:
+        threshold=(thres_min+thres_max)/2.
+        sum_squared=0
+        for i in range(0, coefficients.size):
+            if abs(coefficients[i])<threshold:
+                sum_squared+=math.pow(coefficients[i],2)
+        if sum_squared<epsilon_squared:
+            thres_min=threshold
+        else:
+            thres_max=threshold
+        #until thres_min=thres_max
+        found_thres=(thres_max-thres_min)<0.1
+
+
+    # or max coefficients
+    # returning threshold also?
+
+    # truncate small values in image_values
+    count=0
+    for (row, col), value in np.ndenumerate(image_values):
+        if abs(value)<threshold:
+            image_values[row, col]=0
+            count+=1
+    print("truncated {} values ({} %)".format(count, (count/coefficients.size*100)))
+
+    # recon image
+    image_values=reconstruction_2d(image_values, normalized=True, standard=True)
+
+    # after return
+    # save image
+    return image_values
+
+def decomposition_2d(image_values, normalized=True, standard=True):
     # Haar decomposition of a 2D array inplace
     #print(image_values.shape)
     if standard:
@@ -75,11 +149,9 @@ def normalized_decomposition_2d(image_values, normalized=True, standard=True, no
             image_values[:, i] = _normalized_decomposition(image_values[:, i], normalized)
         return image_values
 
-    if nonstandard:
-        if image_values.shape[0]<image_values.shape[1]:
-            mindim=image_values.shape[0]
-        else:
-            mindim=image_values.shape[1]
+    #nonstandard
+    else:
+        mindim=_read_min_dim(image_values)
         image_values=np.divide(image_values,mindim)
         until=mindim
         while(until>=2):
@@ -90,11 +162,8 @@ def normalized_decomposition_2d(image_values, normalized=True, standard=True, no
             until/=2
         return image_values
 
-    print("nothing to do ;)")
-    return image_values
 
-
-def normalized_reconstruction_2d(image_values, normalized=True, standard=True, nonstandard=False):
+def reconstruction_2d(image_values, normalized=True, standard=True):
     # Haar reconstruction of a 2D array inplace
     #print(image_values.shape)
 
@@ -105,11 +174,9 @@ def normalized_reconstruction_2d(image_values, normalized=True, standard=True, n
             image_values[i] = _normalized_reconstruction(image_values[i], normalized)
         return image_values
 
-    if nonstandard:
-        if image_values.shape[0]<image_values.shape[1]:
-            mindim=image_values.shape[0]
-        else:
-            mindim=image_values.shape[1]
+    #nonstandard
+    else:
+        mindim=_read_min_dim(image_values)
         until=2
         while(until<=mindim):
             for i in range(0, int(until)):
@@ -120,9 +187,12 @@ def normalized_reconstruction_2d(image_values, normalized=True, standard=True, n
         image_values = np.multiply(image_values, mindim)
         return image_values
 
-    print("nothing to do ;)")
-    return image_values
 
+def _read_min_dim(image_values):
+    if image_values.shape[0] < image_values.shape[1]:
+        return image_values.shape[0]
+    else:
+        return image_values.shape[1]
 
 def _normalized_decomposition(coefficients, normalized=True):
     # Haar decomposition of array inplace

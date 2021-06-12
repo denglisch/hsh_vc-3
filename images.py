@@ -26,6 +26,7 @@ image_path=None
 def main():
     Haar.kd_test_decomp_recon_on_1d_array()
     Haar.kd_test_decomp_recon_on_image()
+    Haar.kd_test_compression_on_image()
     #wirte image_path var
     #TODO: get params
     # -decom. n recon. haar_2d
@@ -57,11 +58,11 @@ def haar_2d(image, std=True):
     #TODO einmal std. einmal nicht-std.
     # Parameters args[]
     # std. or non-std.
-    Haar.normalized_decomposition_2d(image)
+    Haar.decomposition_2d(image)
     # save result of decomposition
 
     # run Haar reconstruction
-    Haar.normalized_reconstruction_2d(image)
+    Haar.reconstruction_2d(image)
     # save result of reconstruction
     save_as_image(image, image_path+"_decomp_c2.png")
 
