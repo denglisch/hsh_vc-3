@@ -81,7 +81,7 @@ def kd_test_compression_on_image():
 
     print("compression")
     #image_values=compression(image_values, squared_error_stollnitz=20000)
-    image_values=compression(image_values, number_of_coeffs_left=100000)
+    image_values=compression(image_values, number_of_coeffs_left=10000)
     #image_values=compression(image_values, squared_error=20000000)
 
     # save img
@@ -166,28 +166,16 @@ def compression(image_values, squared_error=None, squared_error_stollnitz=None, 
         else:
             quit_loop=False
             count=0
+            count=coefficients.size-np.count_nonzero(image_values)
             while True:
-                if not math.isinf(threshold*2):
-                    threshold*=2
-                else:
-                    threshold*=1.2
+                threshold*=2
                 #print(threshold)
-                before=np.count_nonzero(image_values)
-                image_values[np.abs(image_values) < threshold] = 0
-                after=np.count_nonzero(image_values)
-                diff=before-after
-                count+=diff
-                print("count: {}, threshold: {}".format(count, threshold))
-                #for (row, col), value in np.ndenumerate(image_values):
-                #    if abs(value)<threshold and value!=0:
-                #        #print("threshold: {} value: {}".format(threshold, image_values[row,col]))
-                #        image_values[row,col]=0.0
-                #        count+=1
+                image_values, truncated=truncate_elements_abs_below_threshold(image_values, threshold)
+                count+=truncated
+                #print("count: {}, threshold: {}".format(count, threshold))
                 if count>=to_truncate:
-                    quit_loop=True
                     break
-                if quit_loop:
-                    break
+                number_of_coeffs_left=np.count_nonzero(image_values)
             print("-- truncated {} values ({} %), {} stay ({} %)".format(count, (count/coefficients.size*100), number_of_coeffs_left, number_of_coeffs_left/coefficients.size*100))
 
     else:
@@ -208,6 +196,14 @@ def compression(image_values, squared_error=None, squared_error_stollnitz=None, 
     # after return
     # save image
     return image_values
+
+def truncate_elements_abs_below_threshold(image_values, threshold):
+    before = np.count_nonzero(image_values)
+    image_values[np.abs(image_values) < threshold] = 0
+    after = np.count_nonzero(image_values)
+    truncated = before - after
+    return image_values, truncated
+
 
 def decomposition_2d(image_values, normalized=True, standard=True):
     # Haar decomposition of a 2D array inplace
