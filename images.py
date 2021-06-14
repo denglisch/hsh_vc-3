@@ -25,8 +25,9 @@ import Haar as Haar
 image_path=None
 def main():
     Haar.kd_test_decomp_recon_on_1d_array()
-    Haar.kd_test_decomp_recon_on_image()
-    Haar.kd_test_compression_on_image()
+    #Haar.kd_test_decomp_recon_on_image()
+    #Haar.kd_test_compression_on_image()
+    Haar.kd_test_color_compression_on_yuv_image()
     #wirte image_path var
     #TODO: get params
     # -decom. n recon. haar_2d
