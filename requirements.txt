@@ -1,5 +1,4 @@
 matplotlib==3.4.2
 numpy
 Pillow
-scikit-image
 pytest

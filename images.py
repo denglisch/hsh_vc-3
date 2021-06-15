@@ -7,20 +7,12 @@ import os
 import matplotlib.pyplot as plt
 
 #TODO: @Dennis: Zwischenschritte: alle? oder reicht das so?
+#TODO: Werte, die bleiben sollen ungefähr ok?
+# Preprocessing: Nur compression auf 60 coefficients?
 
 #TODO CR
 # main & params
-# load image
-#   Info: https://note.nkmk.me/en/python-numpy-image-processing/
-#   image_values = np.array(Image.open('img/Lenna.png'))
-# convert into grayscale
-#    im_gray = np.array(Image.open('img/Lenna.png').convert('L'))
-# convert into YUV
-#    Haar.RGB2YUV and YUV2RGB
 # function calls with params
-# render images as figs in plt
-#   FUNCTION render 8
-# save results as image file save_as_image(image, path)
 
 #TODO KD
 # haar 2d
@@ -29,45 +21,14 @@ image_path = None
 def load_args():
     global image_path
     parser = argparse.ArgumentParser()
-    parser.add_argument('--file', type=str, default= "Lenna.png", help='image_folder missing')
-    parser.add_argument('--g', action="store_true")
+    parser.add_argument('--file', type=str, default="img/Lenna.png", help='image_folder missing')
+    parser.add_argument('--gray', action="store_true")
     parser.add_argument('--yuv', action="store_true")
-    #parser.add_argument('--g', type=int, default=0 )
-    args = parser.parse_args()
-    cwd = os.getcwd()
-    image_path = os.path.join(cwd, "img", args.file)
-    print("load file {}".format(image_path))
-    return args
 
-
-def main():
-    args = load_args()
-    img = Image.open(image_path)
-    if args.g:
-        img_values = np.array(img.convert('L'))
-
-    if args.yuv:
-        img_values = util.RGB2YUV(img)
-    else:
-        img_values = np.array(img)
-    print("img shape {}".format(img_values.shape))
-
-    img_list =[]
-    for i in range(0,8):
-        if i == 3 or i == 4:
-            img_list.append(None)
-        else:
-            img_list.append(img_values)
-
-    print(len(img_list))
-    render_8_images(img_list)
-    exit(0)
-
-    Haar.kd_test_decomp_recon_on_1d_array()
-    #Haar.kd_test_decomp_recon_on_image()
-    #Haar.kd_test_compression_on_image()
-    Haar.kd_test_color_compression_on_yuv_image()
-    #wirte image_path var
+    #TODO:
+    # normaliziert: --norm (default true)
+    # standard/ non standard: --non-std (default false)
+    # repair render
     #TODO: get params
     # -decom. n recon. haar_2d
     #   - std. and non-std.
@@ -78,16 +39,68 @@ def main():
     # -image query preprocess
     #   - decomp. OR recon.
 
+    #parser.add_argument('--g', type=int, default=0 )
+    args = parser.parse_args()
+    cwd = os.getcwd()
+    #image_path = os.path.join(cwd, "img", args.file)
+    image_path=args.file
+    print("load file {}".format(image_path))
+    return args
+
+
+def main():
+    args = load_args()
+
+    #image_values=load_image_as_ndarray_float(image_path, args.gray, args.yuv)
+    image_values=load_image_as_ndarray_float(image_path, gray=True, yuv=False)
+    print("img shape {}".format(image_values.shape))
+
+    Haar.kd_test_color_compression_on_yuv_image()
+    exit(0)
+
+    img_list=[None]*8
+    #for i in range(0,8):
+    #    if i == 3 or i == 4:
+    #        img_list.append(None)
+    #    else:
+    #        img_list.append(image_values)
+
+    img_list[0]=np.copy(image_values)
+    print("decomp")
+    image_values=Haar.decomposition_2d(image_values, normalized=False, standard=True, img_list=img_list)
+
+    img_list[2]=np.copy(np.add(np.multiply(image_values,512.0),128.0).astype(np.uint8))
+
+    img_list[5]=np.copy(image_values)
+    print("recon")
+    image_values=Haar.reconstruction_2d(image_values, normalized=False, standard=True, img_list=img_list)
+    img_list[7]=np.copy(image_values)
+
+    #print(len(img_list))
+    render_8_images(img_list)
+    exit(0)
+
+
+    Haar.kd_test_decomp_recon_on_1d_array()
+    #Haar.kd_test_decomp_recon_on_image()
+    #Haar.kd_test_compression_on_image()
+    Haar.kd_test_color_compression_on_yuv_image()
+    #wirte image_path var
+
     #load image
     return
 
 
 def render_images(img_list, columns=4, rows=2):
     fig = plt.figure(figsize=(12, 8))
+    print(img_list)
+
     for i in range(0, columns * rows):
         if img_list[i] is not None:
+            #img_list[i] = img_list[i].astype(np.uint8)
+
             fig.add_subplot(rows, columns, i + 1)
-            plt.imshow(img_list[i])
+            plt.imshow(img_list[i], cmap=plt.cm.gray)
     plt.show()
 
 def render_4_images(img_list):
@@ -138,9 +151,6 @@ def haar_2d(image, std=True):
     image="LOL"
 
     # run Haar decomposition
-    #TODO einmal std. einmal nicht-std.
-    # Parameters args[]
-    # std. or non-std.
     Haar.decomposition_2d(image)
     # save result of decomposition
 
@@ -148,9 +158,6 @@ def haar_2d(image, std=True):
     Haar.reconstruction_2d(image)
     # save result of reconstruction
     save_as_image(image, image_path+"_decomp_c2.png")
-
-    #TODO show result
-    # 4 times for decomp. 4 times for recon. (4x4 images)
 
     return
 

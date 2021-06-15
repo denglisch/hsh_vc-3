@@ -58,7 +58,7 @@ def kd_test_compression_on_image():
 
     print("compression")
     #image_values=compression(image_values, squared_error_stollnitz=20000)
-    image_values=compression(image_values, number_of_coeffs_left=10000)
+    image_values=compression_2d(image_values, number_of_coeffs_left=10000)
     #image_values=compression(image_values, squared_error=20000000)
 
     # save img
@@ -80,13 +80,7 @@ def kd_test_color_compression_on_yuv_image():
 
     # decomp and recon is done in compression function
     # compress luminance (Y) with one error
-    print("compress Y")
-    image_values[:,:,0]=compression(image_values[:,:,0], number_of_coeffs_left=60)
-    # compress chrominance (UV) with another error
-    print("compress U")
-    image_values[:,:,1]=compression(image_values[:,:,1], number_of_coeffs_left=40)
-    print("compress V")
-    image_values[:,:,2]=compression(image_values[:,:,2], number_of_coeffs_left=40)
+    compression_2d_yuv(image_values, y_number_of_coeffs_left=60, uv_number_of_coeffs_left=40)
 
     # convert to RGB
     image_values=util.YUV2RGB(image_values)
@@ -96,8 +90,18 @@ def kd_test_color_compression_on_yuv_image():
     Image.fromarray(image_values).save("img/Lenna_YUV_COMP.png")
     return
 
+def compression_2d_yuv(image_values, y_squared_error=None, y_squared_error_stollnitz=None, y_number_of_coeffs_left=None, uv_squared_error=None, uv_squared_error_stollnitz=None, uv_number_of_coeffs_left=None):
+    print("compress Y")
+    image_values[:,:,0]=compression_2d(image_values[:, :, 0], squared_error=y_squared_error, squared_error_stollnitz=y_squared_error_stollnitz, number_of_coeffs_left=y_number_of_coeffs_left)
+    # compress chrominance (UV) with another error
+    print("compress U")
+    image_values[:,:,1]=compression_2d(image_values[:, :, 1], squared_error=uv_squared_error, squared_error_stollnitz=uv_squared_error_stollnitz, number_of_coeffs_left=uv_number_of_coeffs_left)
+    print("compress V")
+    image_values[:,:,2]=compression_2d(image_values[:, :, 2], squared_error=uv_squared_error, squared_error_stollnitz=uv_squared_error_stollnitz, number_of_coeffs_left=uv_number_of_coeffs_left)
 
-def compression(image_values, squared_error=None, squared_error_stollnitz=None, number_of_coeffs_left=None):
+    return
+
+def compression_2d(image_values, squared_error=None, squared_error_stollnitz=None, number_of_coeffs_left=None):
     # return compressed image_values
 
     # normalized 2d decomp.
@@ -172,6 +176,8 @@ def compression(image_values, squared_error=None, squared_error_stollnitz=None, 
         else:
             quit_loop=False
             count=0
+            # TODO. calc count correctly
+            # actually it counts zeros that already there...
             count=coefficients.size-np.count_nonzero(image_values)
             while True:
                 threshold*=2
@@ -181,7 +187,7 @@ def compression(image_values, squared_error=None, squared_error_stollnitz=None, 
                 #print("count: {}, threshold: {}".format(count, threshold))
                 if count>=to_truncate:
                     break
-                number_of_coeffs_left=np.count_nonzero(image_values)
+            number_of_coeffs_left=np.count_nonzero(image_values)
             print("-- truncated {} values ({} %), {} stay ({} %)".format(count, (count/coefficients.size*100), number_of_coeffs_left, number_of_coeffs_left/coefficients.size*100))
 
     else:
@@ -211,14 +217,19 @@ def truncate_elements_abs_below_threshold(image_values, threshold):
     return image_values, truncated
 
 
-def decomposition_2d(image_values, normalized=True, standard=True):
+def decomposition_2d(image_values, normalized=True, standard=True, img_list=None):
     # Haar decomposition of a 2D array inplace
     #print(image_values.shape)
     if standard:
         for i in range(0, image_values.shape[0]):
             image_values[i] = _decomposition(image_values[i], normalized)
+
+        if img_list is not None:
+            img_list[1]=np.add(np.copy(image_values), 128.0)
+
         for i in range(0, image_values.shape[1]):
             image_values[:, i] = _decomposition(image_values[:, i], normalized)
+
         return image_values
 
     #nonstandard
@@ -235,13 +246,17 @@ def decomposition_2d(image_values, normalized=True, standard=True):
         return image_values
 
 
-def reconstruction_2d(image_values, normalized=True, standard=True):
+def reconstruction_2d(image_values, normalized=True, standard=True, img_list=None):
     # Haar reconstruction of a 2D array inplace
     #print(image_values.shape)
 
     if standard:
         for i in range(0, image_values.shape[1]):
             image_values[:, i] = _reconstruction(image_values[:, i], normalized)
+
+        if img_list is not None:
+            img_list[6]=np.copy(image_values)
+
         for i in range(0, image_values.shape[0]):
             image_values[i] = _reconstruction(image_values[i], normalized)
         return image_values
