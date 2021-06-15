@@ -2,6 +2,9 @@ import Haar as Haar
 import util
 import numpy as np
 from PIL import Image
+import argparse
+import os
+import matplotlib.pyplot as plt
 
 #TODO: @Dennis: Zwischenschritte: alle? oder reicht das so?
 
@@ -22,9 +25,44 @@ from PIL import Image
 #TODO KD
 # haar 2d
 # other stuff ;)
+image_path = None
+def load_args():
+    global image_path
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--file', type=str, default= "Lenna.png", help='image_folder missing')
+    parser.add_argument('--g', action="store_true")
+    parser.add_argument('--yuv', action="store_true")
+    #parser.add_argument('--g', type=int, default=0 )
+    args = parser.parse_args()
+    cwd = os.getcwd()
+    image_path = os.path.join(cwd, "img", args.file)
+    print("load file {}".format(image_path))
+    return args
 
-image_path=None
+
 def main():
+    args = load_args()
+    img = Image.open(image_path)
+    if args.g:
+        img_values = np.array(img.convert('L'))
+
+    if args.yuv:
+        img_values = util.RGB2YUV(img)
+    else:
+        img_values = np.array(img)
+    print("img shape {}".format(img_values.shape))
+
+    img_list =[]
+    for i in range(0,8):
+        if i == 3 or i == 4:
+            img_list.append(None)
+        else:
+            img_list.append(img_values)
+
+    print(len(img_list))
+    render_8_images(img_list)
+    exit(0)
+
     Haar.kd_test_decomp_recon_on_1d_array()
     #Haar.kd_test_decomp_recon_on_image()
     #Haar.kd_test_compression_on_image()
@@ -43,22 +81,41 @@ def main():
     #load image
     return
 
-def render_4_images(images_array_of_4):
-    return
-def render_8_images(images_array_of_8):
-    return
+
+def render_images(img_list, columns=4, rows=2):
+    fig = plt.figure(figsize=(12, 8))
+    for i in range(0, columns * rows):
+        if img_list[i] is not None:
+            fig.add_subplot(rows, columns, i + 1)
+            plt.imshow(img_list[i])
+    plt.show()
+
+def render_4_images(img_list):
+    render_images(img_list, columns=2, rows=2)
 
 
+def render_8_images(img_list):
+    """
+    array element 3 und 4 müssen mit None gefüllt sein um das muster zu erzeugen
+    :param img_list:
+    :return:
+    """
+    render_images(img_list)
 
-def save_as_image(image_values, image_path):
+def save_as_image(image_values, image_path, yuv=False):
+    """
+
+    :param image_values: als numpy.array
+    :param path:
+    :return:
+    """
+    if yuv:
+        image_values=util.YUV2RGB(image_values)
+
     # save image at path
-
-    #TODO convert to RGB if its still YUV...?
-
     image_values=image_values.astype(np.uint8)
     im = Image.fromarray(image_values)
     im.save(image_path)
-    return
 
 
 def load_image_as_ndarray_float(image_path='img/Lenna.png', gray=True, yuv=False):
