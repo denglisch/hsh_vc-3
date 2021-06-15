@@ -1,4 +1,7 @@
 import Haar as Haar
+import util
+import numpy as np
+from PIL import Image
 
 #TODO: @Dennis: Zwischenschritte: alle? oder reicht das so?
 
@@ -10,9 +13,7 @@ import Haar as Haar
 # convert into grayscale
 #    im_gray = np.array(Image.open('img/Lenna.png').convert('L'))
 # convert into YUV
-#   from skimage.color import rgb2yuv
-#   img = Image.open('test.jpeg')
-#   img_yuv = rgb2yuv(img)
+#    Haar.RGB2YUV and YUV2RGB
 # function calls with params
 # render images as figs in plt
 #   FUNCTION render 8
@@ -46,9 +47,33 @@ def render_4_images(images_array_of_4):
     return
 def render_8_images(images_array_of_8):
     return
-def save_as_image(image, path):
+
+
+
+def save_as_image(image_values, image_path):
     # save image at path
+
+    #TODO convert to RGB if its still YUV...?
+
+    image_values=image_values.astype(np.uint8)
+    im = Image.fromarray(image_values)
+    im.save(image_path)
     return
+
+
+def load_image_as_ndarray_float(image_path='img/Lenna.png', gray=True, yuv=False):
+    if gray:
+        image_values = np.array(Image.open(image_path).convert('L'))
+    else:
+        image_values = np.array(Image.open(image_path))
+
+    if yuv:
+        image_values = util.RGB2YUV(image_values)
+
+    # make sure, values can be negative (default uint)
+    image_values=image_values.astype(np.float64)
+    return image_values
+
 
 def haar_2d(image, std=True):
 

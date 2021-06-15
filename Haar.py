@@ -4,13 +4,13 @@
 import numpy as np
 from PIL import Image
 import math
+import util
 
-mini=0
-maxi=0
 def kd_test_decomp_recon_on_1d_array():
     c=np.array([9.,7.,2.,6.])
     print("decomp {}".format(c))
     c=_decomposition(c, normalized=False)
+    print("-> {}".format(c))
     print("recon {}".format(c))
     c=_reconstruction(c,  normalized=False)
     print("-> {}".format(c))
@@ -26,10 +26,6 @@ def kd_test_decomp_recon_on_image():
 
     # std decomp
     print("decomp")
-    global mini
-    mini=0
-    global maxi
-    maxi=0
     image_values=decomposition_2d(image_values, normalized=True, standard=False)
 
     # save img
@@ -40,7 +36,6 @@ def kd_test_decomp_recon_on_image():
     copy=copy.astype(np.uint8)
     im = Image.fromarray(copy)
     im.save("img/Lenna_DECOMP.png")
-    print("min: {} max: {}".format(mini,maxi))
 
     #image_values=np.subtract(image_values, 100.0)
 
@@ -61,11 +56,6 @@ def kd_test_compression_on_image():
     # make sure, values can be negative (default uint)
     image_values=image_values.astype(np.float64)
 
-    global mini
-    mini=0
-    global maxi
-    maxi=0
-
     print("compression")
     #image_values=compression(image_values, squared_error_stollnitz=20000)
     image_values=compression(image_values, number_of_coeffs_left=10000)
@@ -85,49 +75,27 @@ def kd_test_color_compression_on_yuv_image():
     print(image_values[0,0])
 
     # convert to YUV
-    image_values=RGB2YUV(image_values)
+    image_values=util.RGB2YUV(image_values)
     print(image_values[0,0])
 
     # decomp and recon is done in compression function
     # compress luminance (Y) with one error
     print("compress Y")
-    image_values[:,:,0]=compression(image_values[:,:,0], number_of_coeffs_left=100000)
+    image_values[:,:,0]=compression(image_values[:,:,0], number_of_coeffs_left=60)
     # compress chrominance (UV) with another error
     print("compress U")
-    image_values[:,:,1]=compression(image_values[:,:,1], number_of_coeffs_left=10000)
+    image_values[:,:,1]=compression(image_values[:,:,1], number_of_coeffs_left=40)
     print("compress V")
-    image_values[:,:,2]=compression(image_values[:,:,2], number_of_coeffs_left=10000)
+    image_values[:,:,2]=compression(image_values[:,:,2], number_of_coeffs_left=40)
 
     # convert to RGB
-    image_values=YUV2RGB(image_values)
+    image_values=util.YUV2RGB(image_values)
 
     # save img
     image_values=image_values.astype(np.uint8)
-    im = Image.fromarray(image_values)
-    im.save("img/Lenna_YUV_COMP.png")
+    Image.fromarray(image_values).save("img/Lenna_YUV_COMP.png")
     return
 
-# from: https://gist.github.com/Quasimondo/c3590226c924a06b276d606f4f189639
-def RGB2YUV(rgb):
-    m = np.array([[0.29900, -0.16874, 0.50000],
-                  [0.58700, -0.33126, -0.41869],
-                  [0.11400, 0.50000, -0.08131]])
-
-    yuv = np.dot(rgb, m)
-    yuv[:, :, 1:] += 128.0
-    return yuv
-# from: https://gist.github.com/Quasimondo/c3590226c924a06b276d606f4f189639
-def YUV2RGB(yuv):
-    m = np.array([[1.0, 1.0, 1.0],
-                  [-0.000007154783816076815, -0.3441331386566162, 1.7720025777816772],
-                  [1.4019975662231445, -0.7141380310058594, 0.00001542569043522235]])
-
-    rgb = np.dot(yuv, m)
-    rgb[:, :, 0] -= 179.45477266423404
-    rgb[:, :, 1] += 135.45870971679688
-    rgb[:, :, 2] -= 226.8183044444304
-    rgb = rgb.clip(0, 255)
-    return rgb
 
 def compression(image_values, squared_error=None, squared_error_stollnitz=None, number_of_coeffs_left=None):
     # return compressed image_values
@@ -337,14 +305,6 @@ def _decomposition_step(coefficients, until, normalized=True):
         detail=(val1-val2)*div_sqrt_2
         copy[i]=avg
         copy[detail_i+i]=detail
-
-        global mini
-        global maxi
-        if avg<mini:mini=avg
-        if detail<mini:mini=detail
-        if avg>maxi:maxi=avg
-        if detail>maxi:maxi=detail
-
     # apply changes to original array
     coefficients=copy
     return coefficients
