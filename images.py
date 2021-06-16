@@ -69,7 +69,10 @@ def main():
     print("decomp")
     image_values=Haar.decomposition_2d(image_values, normalized=False, standard=True, img_list=img_list)
 
-    img_list[2]=np.copy(np.add(np.multiply(image_values,512.0),128.0).astype(np.uint8))
+    cpy_for_list=np.copy(image_values)
+    if not args.std:
+        np.multiply(cpy_for_list, Haar._read_min_dim(cpy_for_list))
+    img_list[2]=np.copy(np.add(image_values,128.0).astype(np.uint8))
 
     img_list[5]=np.copy(image_values)
     print("recon")
