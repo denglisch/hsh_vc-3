@@ -26,22 +26,47 @@ def kd_test_decomp_recon_on_image():
 
     # std decomp
     print("decomp")
-    image_values=decomposition_2d(image_values, normalized=True, standard=False)
+    normalized=True
+    std=False
+
+    image_values=decomposition_2d(image_values, normalized=normalized, standard=std)
+
+    real_extrem=np.array([image_values.min(), image_values.max()])
+    extrem=np.array([np.percentile(image_values, 1), np.percentile(image_values, 99)])
+    print("- min: {}, max: {}".format(real_extrem[0],real_extrem[1]))
+    print("- crop 1% to min: {}, max: {}".format(extrem[0],extrem[1]))
 
     # save img
-    #image_values=np.add(image_values, 100.0)
-    copy=np.copy(image_values)
-    copy=np.multiply(copy, _read_min_dim(image_values))
-    #copy=np.add(copy, 128.0)
-    copy=copy.astype(np.uint8)
-    im = Image.fromarray(copy)
+    decomp_image_values = np.copy(image_values)
+    if normalized:
+        sqrt2 = math.sqrt(2)
+        decomp_image_values=np.multiply(decomp_image_values, sqrt2)
+        extrem*=sqrt2
+    if not std:
+        min_dim=_read_min_dim(image_values)
+        decomp_image_values=np.multiply(decomp_image_values, min_dim)
+        extrem*=min_dim
+    print("- undo normalization/standardization to min: {}, max: {}".format(extrem[0],extrem[1]))
+
+    decomp_image_values=np.subtract(decomp_image_values, extrem[0])
+    extrem-=extrem[0]
+    print("- shift by min to min: {}, max: {}".format(extrem[0],extrem[1]))
+
+    range=extrem[1]-extrem[0]
+    correct=256.0/range
+    decomp_image_values=np.multiply(decomp_image_values,correct)
+    extrem*=correct
+    print("- scale to min: {}, max: {}".format(extrem[0],extrem[1]))
+
+    decomp_image_values=decomp_image_values.astype(np.uint8)
+    im = Image.fromarray(decomp_image_values)
     im.save("img/Lenna_DECOMP.png")
 
     #image_values=np.subtract(image_values, 100.0)
 
     # std recon
     print("recon")
-    image_values=reconstruction_2d(image_values, normalized=True, standard=False)
+    image_values=reconstruction_2d(image_values, normalized=normalized, standard=std)
 
     # save img
     image_values=image_values.astype(np.uint8)
@@ -356,8 +381,10 @@ def _decomposition_step(coefficients, until, normalized=True):
         detail=(val1-val2)*div_sqrt_2
         copy[i]=avg
         copy[detail_i+i]=detail
+
     # apply changes to original array
     coefficients=copy
+
     return coefficients
 
 def _reconstruction(coefficients, normalized=True):

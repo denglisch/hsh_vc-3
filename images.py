@@ -55,7 +55,10 @@ def main():
     image_values=load_image_as_ndarray_float(image_path, gray=True, yuv=False)
     print("img shape {}".format(image_values.shape))
 
-    Haar.kd_test_color_compression_on_yuv_image()
+    Haar.kd_test_decomp_recon_on_1d_array()
+    Haar.kd_test_decomp_recon_on_image()
+    #Haar.kd_test_compression_on_image()
+    #Haar.kd_test_color_compression_on_yuv_image()
     exit(0)
 
     img_list=[None]*8
@@ -84,10 +87,6 @@ def main():
     exit(0)
 
 
-    Haar.kd_test_decomp_recon_on_1d_array()
-    #Haar.kd_test_decomp_recon_on_image()
-    #Haar.kd_test_compression_on_image()
-    Haar.kd_test_color_compression_on_yuv_image()
     #wirte image_path var
 
     #load image
