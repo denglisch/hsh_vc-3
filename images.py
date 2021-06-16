@@ -59,7 +59,7 @@ def main():
     Haar.kd_test_decomp_recon_on_image()
     #Haar.kd_test_compression_on_image()
     #Haar.kd_test_color_compression_on_yuv_image()
-    exit(0)
+    #exit(0)
 
     img_list=[None]*8
     #for i in range(0,8):
@@ -70,16 +70,15 @@ def main():
 
     img_list[0]=np.copy(image_values)
     print("decomp")
-    image_values=Haar.decomposition_2d(image_values, normalized=False, standard=True, img_list=img_list)
+    norm=False
+    std=True
+    image_values=Haar.decomposition_2d(image_values, normalized=norm, standard=std, img_list=img_list)
 
-    cpy_for_list=np.copy(image_values)
-    if not args.std:
-        np.multiply(cpy_for_list, Haar._read_min_dim(cpy_for_list))
-    img_list[2]=np.copy(np.add(image_values,128.0).astype(np.uint8))
+    img_list[2]=Haar.prepare_decomp_image_for_render(image_values, normalized=norm, std=std)
 
     img_list[5]=np.copy(image_values)
     print("recon")
-    image_values=Haar.reconstruction_2d(image_values, normalized=False, standard=True, img_list=img_list)
+    image_values=Haar.reconstruction_2d(image_values, normalized=norm, standard=std, img_list=img_list)
     img_list[7]=np.copy(image_values)
 
     #print(len(img_list))
@@ -95,7 +94,7 @@ def main():
 
 def render_images(img_list, columns=4, rows=2):
     fig = plt.figure(figsize=(12, 8))
-    print(img_list)
+    #print(img_list)
 
     for i in range(0, columns * rows):
         if img_list[i] is not None:

@@ -31,34 +31,8 @@ def kd_test_decomp_recon_on_image():
 
     image_values=decomposition_2d(image_values, normalized=normalized, standard=std)
 
-    real_extrem=np.array([image_values.min(), image_values.max()])
-    extrem=np.array([np.percentile(image_values, 1), np.percentile(image_values, 99)])
-    print("- min: {}, max: {}".format(real_extrem[0],real_extrem[1]))
-    print("- crop 1% to min: {}, max: {}".format(extrem[0],extrem[1]))
+    decomp_image_values=prepare_decomp_image_for_render(image_values, normalized, std)
 
-    # save img
-    decomp_image_values = np.copy(image_values)
-    if normalized:
-        sqrt2 = math.sqrt(2)
-        decomp_image_values=np.multiply(decomp_image_values, sqrt2)
-        extrem*=sqrt2
-    if not std:
-        min_dim=_read_min_dim(image_values)
-        decomp_image_values=np.multiply(decomp_image_values, min_dim)
-        extrem*=min_dim
-    print("- undo normalization/standardization to min: {}, max: {}".format(extrem[0],extrem[1]))
-
-    decomp_image_values=np.subtract(decomp_image_values, extrem[0])
-    extrem-=extrem[0]
-    print("- shift by min to min: {}, max: {}".format(extrem[0],extrem[1]))
-
-    range=extrem[1]-extrem[0]
-    correct=256.0/range
-    decomp_image_values=np.multiply(decomp_image_values,correct)
-    extrem*=correct
-    print("- scale to min: {}, max: {}".format(extrem[0],extrem[1]))
-
-    decomp_image_values=decomp_image_values.astype(np.uint8)
     im = Image.fromarray(decomp_image_values)
     im.save("img/Lenna_DECOMP.png")
 
@@ -73,6 +47,37 @@ def kd_test_decomp_recon_on_image():
     im = Image.fromarray(image_values)
     im.save("img/Lenna_RECON.png")
     return
+
+def prepare_decomp_image_for_render(image_values, normalized, std):
+    real_extrem = np.array([image_values.min(), image_values.max()])
+    extrem = np.array([np.percentile(image_values, 1), np.percentile(image_values, 99)])
+    print("- min: {}, max: {}".format(real_extrem[0], real_extrem[1]))
+    print("- crop 1% to min: {}, max: {}".format(extrem[0], extrem[1]))
+
+    # work on copy
+    decomp_image_values = np.copy(image_values)
+    if normalized:
+        sqrt2 = math.sqrt(2)
+        decomp_image_values = np.multiply(decomp_image_values, sqrt2)
+        extrem *= sqrt2
+    if not std:
+        min_dim = _read_min_dim(image_values)
+        decomp_image_values = np.multiply(decomp_image_values, min_dim)
+        extrem *= min_dim
+    print("- undo normalization/standardization to min: {}, max: {}".format(extrem[0], extrem[1]))
+
+    decomp_image_values = np.subtract(decomp_image_values, extrem[0])
+    extrem -= extrem[0]
+    print("- shift by min to min: {}, max: {}".format(extrem[0], extrem[1]))
+
+    range = extrem[1] - extrem[0]
+    correct = 256.0 / range
+    decomp_image_values = np.multiply(decomp_image_values, correct)
+    extrem *= correct
+    print("- scale to min: {}, max: {}".format(extrem[0], extrem[1]))
+    decomp_image_values = decomp_image_values.astype(np.uint8)
+    return decomp_image_values
+
 
 def kd_test_compression_on_image():
     # load lenna as 2d grayscale array
@@ -286,7 +291,9 @@ def decomposition_2d(image_values, normalized=True, standard=True, img_list=None
             image_values[i] = _decomposition(image_values[i], normalized)
 
         if img_list is not None:
-            img_list[1]=np.add(np.copy(image_values), 128.0)
+            #img_list[1]=np.add(np.copy(image_values), 128.0)
+            img_list[1]=np.copy(prepare_decomp_image_for_render(image_values, normalized, standard))
+            #img_list[1]=img_list[1].astype(np.uint8)
 
         for i in range(0, image_values.shape[1]):
             image_values[:, i] = _decomposition(image_values[:, i], normalized)
