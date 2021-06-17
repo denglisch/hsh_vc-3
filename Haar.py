@@ -27,7 +27,7 @@ def kd_test_decomp_recon_on_image():
     # std decomp
     print("decomp")
     normalized=True
-    std=False
+    std=True
 
     image_values=decomposition_2d(image_values, normalized=normalized, standard=std)
 
@@ -101,7 +101,7 @@ def kd_test_compression_on_image():
 
 def kd_test_color_compression_on_yuv_image():
     # load lenna as 2d RGB array
-    image_values = np.array(Image.open('img/Lenna.png'))
+    image_values = np.array(Image.open('img/Lenna_1024.jpg'))
     print(image_values.shape)
     print(image_values[0,0])
 
@@ -119,7 +119,7 @@ def kd_test_color_compression_on_yuv_image():
 
     # save img
     image_values=image_values.astype(np.uint8)
-    Image.fromarray(image_values).save("img/Lenna_YUV_COMP.png")
+    Image.fromarray(image_values).save("img/Lenna_1024_YUV_COMP.png")
     return
 
 def compression_2d_yuv(image_values,
@@ -282,6 +282,28 @@ def truncate_elements_abs_below_threshold(image_values, threshold):
     truncated = before - after
     return image_values, truncated
 
+def decomposition_2d_with_steps(image_values, normalized=True, standard=True, img_list=None):
+    # Only on squared images
+
+    #normalize
+
+    #start with whole array
+    until=_read_min_dim(image_values)
+
+    while until>=2:
+        for i in range(0, int(until)):
+            image_values[i] = _decomposition_step(image_values[i], until, normalized)
+
+
+
+        for i in range(0, int(until)):
+            image_values[:, i] = _decomposition_step(image_values[:, i], until, normalized)
+
+
+        coefficients=_decomposition_step(coefficients, until, normalized)
+        until/=2
+
+    return image_values
 
 def decomposition_2d(image_values, normalized=True, standard=True, img_list=None):
     # Haar decomposition of a 2D array inplace

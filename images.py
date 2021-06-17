@@ -7,16 +7,17 @@ import os
 import matplotlib.pyplot as plt
 
 #TODO: @Dennis: Zwischenschritte: alle? oder reicht das so?
-#TODO: Werte, die bleiben sollen ungefähr ok?
-# Preprocessing: Nur compression auf 60 coefficients?
+# - "lib" kann das soweit, reichen die "test"-Fkt?
+# - nur auf shapes zur Basis 2
+# - Werte, die bleiben sollen ungefähr ok?
+# - Preprocessing: Nur compression auf 60 coefficients?
 
 #TODO CR
 # main & params
 # function calls with params
 
 #TODO KD
-# haar 2d
-# other stuff ;)
+#
 image_path = None
 def load_args():
     global image_path
@@ -26,7 +27,7 @@ def load_args():
     parser.add_argument('--yuv', action="store_true")
 
     #TODO:
-    # normaliziert: --norm (default true)
+    # normalized: --norm (default true)
     # standard/ non standard: --non-std (default false)
     # repair render
     #TODO: get params
@@ -59,7 +60,7 @@ def main():
     Haar.kd_test_decomp_recon_on_image()
     #Haar.kd_test_compression_on_image()
     #Haar.kd_test_color_compression_on_yuv_image()
-    #exit(0)
+    exit(0)
 
     img_list=[None]*8
     #for i in range(0,8):
