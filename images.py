@@ -5,6 +5,7 @@ from PIL import Image
 import argparse
 import os
 import matplotlib.pyplot as plt
+import math
 
 #TODO: @Dennis: Zwischenschritte: alle? oder reicht das so?
 # - "lib" kann das soweit, reichen die "test"-Fkt?
@@ -57,33 +58,35 @@ def main():
     print("img shape {}".format(image_values.shape))
 
     Haar.kd_test_decomp_recon_on_1d_array()
-    Haar.kd_test_decomp_recon_on_image()
+    #Haar.kd_test_decomp_recon_on_image()
     #Haar.kd_test_compression_on_image()
     #Haar.kd_test_color_compression_on_yuv_image()
-    exit(0)
+    #exit(0)
 
-    img_list=[None]*8
-    #for i in range(0,8):
-    #    if i == 3 or i == 4:
-    #        img_list.append(None)
-    #    else:
-    #        img_list.append(image_values)
+    img_list=[]
+    img_list.append(np.copy(image_values))
 
-    img_list[0]=np.copy(image_values)
-    print("decomp")
     norm=False
-    std=True
-    image_values=Haar.decomposition_2d(image_values, normalized=norm, standard=std, img_list=img_list)
+    std=False
+    crop_min_max = False
+    print("decomp")
+    image_values=Haar.decomposition_2d_with_steps(image_values, normalized=norm, standard=std, img_list=img_list, crop_min_max=crop_min_max)
 
-    img_list[2]=Haar.prepare_decomp_image_for_render(image_values, normalized=norm, std=std)
-
-    img_list[5]=np.copy(image_values)
     print("recon")
-    image_values=Haar.reconstruction_2d(image_values, normalized=norm, standard=std, img_list=img_list)
-    img_list[7]=np.copy(image_values)
+    result=Haar.reconstruction_2d_with_steps(image_values, normalized=norm, standard=std, img_list=img_list, crop_min_max=crop_min_max)
+
+    first_img=img_list[0]
+    diff_img=np.subtract(first_img,result)
+    #diff_img.astype(np.uint8)
+    diff_img=Haar.prepare_decomp_image_for_render(diff_img, normalized=norm, std=std,crop_min_max=False)
+    img_list.append(diff_img)
 
     #print(len(img_list))
-    render_8_images(img_list)
+    mindim = Haar._read_min_dim(image_values)
+    log = math.ceil(math.log(mindim, 2))
+
+    render_images(img_list,log+2,5)
+    #render_8_images(img_list)
     exit(0)
 
 
@@ -94,15 +97,28 @@ def main():
 
 
 def render_images(img_list, columns=4, rows=2):
-    fig = plt.figure(figsize=(12, 8))
+    fig = plt.figure(frameon=False)#, figsize=(12,8))
+    plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=1)
+
+    #fig.set_size_inches(1, 2)
     #print(img_list)
 
-    for i in range(0, columns * rows):
+    #ax = plt.Axes(fig, [0., 0., 1., 1.])
+    #ax.set_axis_off()
+    #fig.add_axes(ax)
+
+    #for i in range(0, columns * rows):
+    for i in range(0, len(img_list)):
         if img_list[i] is not None:
             #img_list[i] = img_list[i].astype(np.uint8)
 
-            fig.add_subplot(rows, columns, i + 1)
+            #ax.imshow(img_list[i], aspect='auto')
+            #fig.savefig(fname, dpi)
+
+            pl=fig.add_subplot(rows, columns, i + 1)
+            pl.set_axis_off()
             plt.imshow(img_list[i], cmap=plt.cm.gray)
+
     plt.show()
 
 def render_4_images(img_list):

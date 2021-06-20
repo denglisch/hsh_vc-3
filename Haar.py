@@ -48,11 +48,14 @@ def kd_test_decomp_recon_on_image():
     im.save("img/Lenna_RECON.png")
     return
 
-def prepare_decomp_image_for_render(image_values, normalized, std):
+def prepare_decomp_image_for_render(image_values, normalized, std, crop_min_max=True):
     real_extrem = np.array([image_values.min(), image_values.max()])
-    extrem = np.array([np.percentile(image_values, 1), np.percentile(image_values, 99)])
     print("- min: {}, max: {}".format(real_extrem[0], real_extrem[1]))
-    print("- crop 1% to min: {}, max: {}".format(extrem[0], extrem[1]))
+    if crop_min_max:
+        extrem = np.array([np.percentile(image_values, 1), np.percentile(image_values, 99)])
+        print("- crop 1% to min: {}, max: {}".format(extrem[0], extrem[1]))
+    else:
+        extrem = real_extrem
 
     # work on copy
     decomp_image_values = np.copy(image_values)
@@ -66,15 +69,17 @@ def prepare_decomp_image_for_render(image_values, normalized, std):
         extrem *= min_dim
     print("- undo normalization/standardization to min: {}, max: {}".format(extrem[0], extrem[1]))
 
-    decomp_image_values = np.subtract(decomp_image_values, extrem[0])
-    extrem -= extrem[0]
-    print("- shift by min to min: {}, max: {}".format(extrem[0], extrem[1]))
+    if crop_min_max:
+        decomp_image_values = np.subtract(decomp_image_values, extrem[0])
+        extrem -= extrem[0]
+        print("- shift by min to min: {}, max: {}".format(extrem[0], extrem[1]))
 
-    range = extrem[1] - extrem[0]
-    correct = 256.0 / range
-    decomp_image_values = np.multiply(decomp_image_values, correct)
-    extrem *= correct
-    print("- scale to min: {}, max: {}".format(extrem[0], extrem[1]))
+        range = extrem[1] - extrem[0]
+        correct = 256.0 / range
+        decomp_image_values = np.multiply(decomp_image_values, correct)
+        extrem *= correct
+        print("- scale to min: {}, max: {}".format(extrem[0], extrem[1]))
+
     decomp_image_values = decomp_image_values.astype(np.uint8)
     return decomp_image_values
 
@@ -282,40 +287,67 @@ def truncate_elements_abs_below_threshold(image_values, threshold):
     truncated = before - after
     return image_values, truncated
 
-def decomposition_2d_with_steps(image_values, normalized=True, standard=True, img_list=None):
+def decomposition_2d_with_steps(image_values, normalized=True, standard=True, img_list=None, crop_min_max=True):
     # Only on squared images
 
-    #normalize
+    if standard:
+        # normalize
+        if normalized:
+            sqrt2 = math.sqrt(2)
+            # sqrt2=1
+            np.divide(image_values, sqrt2)
 
-    #start with whole array
-    until=_read_min_dim(image_values)
+        #start with whole array
+        until=_read_min_dim(image_values)
+        while until>=2:
+            for i in range(0, image_values.shape[0]):
+                image_values[i] = _decomposition_step(image_values[i], until, normalized)
+            img_list.append(np.copy(prepare_decomp_image_for_render(image_values, normalized, standard, crop_min_max)))
+            until/=2
 
-    while until>=2:
-        for i in range(0, int(until)):
-            image_values[i] = _decomposition_step(image_values[i], until, normalized)
+        img_list.append(None)
+        img_list.append(None)
 
+        # start with whole array
+        until = _read_min_dim(image_values)
+        while until >= 2:
+            for i in range(0, image_values.shape[1]):
+                image_values[:, i] = _decomposition_step(image_values[:, i], until, normalized)
+            img_list.append(np.copy(prepare_decomp_image_for_render(image_values, normalized, standard, crop_min_max)))
+            until/=2
 
+    #non-standard
+    else:
+        mindim = _read_min_dim(image_values)
+        log=math.ceil(math.log(mindim,2))
+        #print(log)
+        image_values = np.divide(image_values, mindim)
+        until = mindim
+        while (until >= 2):
+            for i in range(0, int(until)):
+                image_values[i] = _decomposition_step(image_values[i], until, normalized)
+            img_list.append(np.copy(prepare_decomp_image_for_render(image_values, normalized, standard, crop_min_max)))
 
-        for i in range(0, int(until)):
-            image_values[:, i] = _decomposition_step(image_values[:, i], until, normalized)
+            if (len(img_list)+1)%int(log+2)==0:
+                img_list.append(None)
+                img_list.append(None)
 
+            for i in range(0, int(until)):
+                image_values[:, i] = _decomposition_step(image_values[:, i], until, normalized)
+            img_list.append(np.copy(prepare_decomp_image_for_render(image_values, normalized, standard,crop_min_max)))
+            until /= 2
 
-        coefficients=_decomposition_step(coefficients, until, normalized)
-        until/=2
+    img_list.append(None)
+    img_list.append(None)
 
     return image_values
 
-def decomposition_2d(image_values, normalized=True, standard=True, img_list=None):
+def decomposition_2d(image_values, normalized=True, standard=True):
     # Haar decomposition of a 2D array inplace
     #print(image_values.shape)
     if standard:
         for i in range(0, image_values.shape[0]):
             image_values[i] = _decomposition(image_values[i], normalized)
-
-        if img_list is not None:
-            #img_list[1]=np.add(np.copy(image_values), 128.0)
-            img_list[1]=np.copy(prepare_decomp_image_for_render(image_values, normalized, standard))
-            #img_list[1]=img_list[1].astype(np.uint8)
 
         for i in range(0, image_values.shape[1]):
             image_values[:, i] = _decomposition(image_values[:, i], normalized)
@@ -327,7 +359,7 @@ def decomposition_2d(image_values, normalized=True, standard=True, img_list=None
         mindim=_read_min_dim(image_values)
         image_values=np.divide(image_values,mindim)
         until=mindim
-        while(until>=2):
+        while until>=2:
             for i in range(0, int(until)):
                 image_values[i] = _decomposition_step(image_values[i], until, normalized)
             for i in range(0, int(until)):
@@ -335,17 +367,74 @@ def decomposition_2d(image_values, normalized=True, standard=True, img_list=None
             until/=2
         return image_values
 
+def reconstruction_2d_with_steps(image_values, normalized=True, standard=True, img_list=None, crop_min_max=True):
+    # Only on squared images
 
-def reconstruction_2d(image_values, normalized=True, standard=True, img_list=None):
+    if standard:
+        # normalize
+        if normalized:
+            sqrt2 = math.sqrt(2)
+            # sqrt2=1
+            np.divide(image_values, sqrt2)
+
+        mindim = _read_min_dim(image_values)
+
+        # start with whole array
+        until = 2
+        while until<=mindim:
+            for i in range(0, image_values.shape[1]):
+                image_values[:, i] = _reconstruction_step(image_values[:, i], until, normalized)
+            img_list.append(np.copy(prepare_decomp_image_for_render(image_values, normalized, standard, crop_min_max)))
+            until*=2
+
+        img_list.append(None)
+        img_list.append(None)
+
+        #start with whole array
+        until=2
+        while until<=mindim:
+            for i in range(0, image_values.shape[0]):
+                image_values[i] = _reconstruction_step(image_values[i], until, normalized)
+            img_list.append(np.copy(prepare_decomp_image_for_render(image_values, normalized, standard,crop_min_max)))
+            until*=2
+
+        # undo normalize
+        if normalized:
+            sqrt2 = math.sqrt(2)
+            np.multiply(image_values, sqrt2)
+
+    #non-standard
+    else:
+        mindim = _read_min_dim(image_values)
+        log=math.ceil(math.log(mindim,2))
+        #print(log)
+        until = 2
+        while until<=mindim:
+            for i in range(0, int(until)):
+                image_values[:, i] = _reconstruction_step(image_values[:, i], until, normalized)
+            img_list.append(np.copy(prepare_decomp_image_for_render(image_values, normalized, standard,crop_min_max)))
+
+            if (len(img_list)+1)%int(log+2)==0:
+                img_list.append(None)
+                img_list.append(None)
+
+            for i in range(0, int(until)):
+                image_values[i] = _reconstruction_step(image_values[i], until, normalized)
+            img_list.append(np.copy(prepare_decomp_image_for_render(image_values, normalized, standard,crop_min_max)))
+            until *= 2
+
+        image_values = np.multiply(image_values, mindim)
+
+    return image_values
+
+
+def reconstruction_2d(image_values, normalized=True, standard=True):
     # Haar reconstruction of a 2D array inplace
     #print(image_values.shape)
 
     if standard:
         for i in range(0, image_values.shape[1]):
             image_values[:, i] = _reconstruction(image_values[:, i], normalized)
-
-        if img_list is not None:
-            img_list[6]=np.copy(image_values)
 
         for i in range(0, image_values.shape[0]):
             image_values[i] = _reconstruction(image_values[i], normalized)
