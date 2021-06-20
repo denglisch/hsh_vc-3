@@ -53,8 +53,13 @@ def load_args():
 def main():
     args = load_args()
 
+    color=True
+    yuv=True if color else False
+    gray=False if color else True
+
     #image_values=load_image_as_ndarray_float(image_path, args.gray, args.yuv)
-    image_values=load_image_as_ndarray_float(image_path, gray=True, yuv=False)
+    image_values=load_image_as_ndarray_float(image_path, gray=gray, yuv=yuv)
+    image_values=load_image_as_ndarray_float("img/Lenna.png", gray=gray, yuv=yuv)
     print("img shape {}".format(image_values.shape))
 
     Haar.kd_test_decomp_recon_on_1d_array()
@@ -64,22 +69,33 @@ def main():
     #exit(0)
 
     img_list=[]
-    img_list.append(np.copy(image_values))
+    if yuv:
+        img_list.append(np.copy(util.YUV2RGB(image_values).astype(np.uint8)))
+    else:
+        img_list.append(np.copy(image_values))
 
-    norm=False
-    std=False
-    crop_min_max = False
+
+    norm=True
+    std=True
+    crop_min_max = True
     print("decomp")
-    image_values=Haar.decomposition_2d_with_steps(image_values, normalized=norm, standard=std, img_list=img_list, crop_min_max=crop_min_max)
+    decomp=Haar.decomposition_2d_with_steps(image_values, normalized=norm, standard=std, img_list=img_list, crop_min_max=crop_min_max)
 
     print("recon")
-    result=Haar.reconstruction_2d_with_steps(image_values, normalized=norm, standard=std, img_list=img_list, crop_min_max=crop_min_max)
+    result=Haar.reconstruction_2d_with_steps(decomp, normalized=norm, standard=std, img_list=img_list, crop_min_max=crop_min_max)
 
-    first_img=img_list[0]
-    diff_img=np.subtract(first_img,result)
+    if yuv:
+        #diff_img = np.subtract(first_img, util.YUV2RGB(result))
+        diff_img = np.subtract(image_values, result)
+    else:
+        diff_img=np.subtract(image_values,result)
     #diff_img.astype(np.uint8)
     diff_img=Haar.prepare_decomp_image_for_render(diff_img, normalized=norm, std=std,crop_min_max=False)
     img_list.append(diff_img)
+    error=diff_img.sum()
+    mul=3 if color else 1
+    rel_error=error/(image_values.shape[0]*image_values.shape[1]*mul*256)*100
+    print("Diff from input: {} ({} %)".format(error, rel_error))
 
     #print(len(img_list))
     mindim = Haar._read_min_dim(image_values)
@@ -107,6 +123,8 @@ def render_images(img_list, columns=4, rows=2):
     #ax.set_axis_off()
     #fig.add_axes(ax)
 
+    color=True if len(img_list[0].shape)==3 else False
+
     #for i in range(0, columns * rows):
     for i in range(0, len(img_list)):
         if img_list[i] is not None:
@@ -117,7 +135,10 @@ def render_images(img_list, columns=4, rows=2):
 
             pl=fig.add_subplot(rows, columns, i + 1)
             pl.set_axis_off()
-            plt.imshow(img_list[i], cmap=plt.cm.gray)
+            if color:
+                plt.imshow(img_list[i])
+            else:
+                plt.imshow(img_list[i], cmap='gray')
 
     plt.show()
 
@@ -156,10 +177,14 @@ def load_image_as_ndarray_float(image_path='img/Lenna.png', gray=True, yuv=False
         image_values = np.array(Image.open(image_path))
 
     if yuv:
+        #reduce to 3 channels (otherwise our conversion won't work ;) )
+        image_values=image_values[...,:3]
+        image_values = image_values.astype(np.float32)
         image_values = util.RGB2YUV(image_values)
 
     # make sure, values can be negative (default uint)
-    image_values=image_values.astype(np.float64)
+    #image_values=image_values.astype(np.float64)
+    image_values=image_values.astype(np.float32)
     return image_values
 
 

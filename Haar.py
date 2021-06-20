@@ -49,36 +49,48 @@ def kd_test_decomp_recon_on_image():
     return
 
 def prepare_decomp_image_for_render(image_values, normalized, std, crop_min_max=True):
-    real_extrem = np.array([image_values.min(), image_values.max()])
-    print("- min: {}, max: {}".format(real_extrem[0], real_extrem[1]))
-    if crop_min_max:
-        extrem = np.array([np.percentile(image_values, 1), np.percentile(image_values, 99)])
-        print("- crop 1% to min: {}, max: {}".format(extrem[0], extrem[1]))
+    color=True if len(image_values.shape)==3 else False
+    if color:
+        until=3
     else:
-        extrem = real_extrem
+        until=1
+
 
     # work on copy
     decomp_image_values = np.copy(image_values)
-    if normalized:
-        sqrt2 = math.sqrt(2)
-        decomp_image_values = np.multiply(decomp_image_values, sqrt2)
-        extrem *= sqrt2
-    if not std:
-        min_dim = _read_min_dim(image_values)
-        decomp_image_values = np.multiply(decomp_image_values, min_dim)
-        extrem *= min_dim
-    print("- undo normalization/standardization to min: {}, max: {}".format(extrem[0], extrem[1]))
 
-    if crop_min_max:
-        decomp_image_values = np.subtract(decomp_image_values, extrem[0])
-        extrem -= extrem[0]
-        print("- shift by min to min: {}, max: {}".format(extrem[0], extrem[1]))
+    for i in range(0, until):
+        real_extrem = np.array([image_values[i].min(), image_values[i].max()])
+        print("- min: {}, max: {}".format(real_extrem[0], real_extrem[1]))
+        if crop_min_max:
+            extrem = np.array([np.percentile(image_values[i], 1), np.percentile(image_values[i], 99)])
+            print("- crop 1% to min: {}, max: {}".format(extrem[0], extrem[1]))
+        else:
+            extrem = real_extrem
 
-        range = extrem[1] - extrem[0]
-        correct = 256.0 / range
-        decomp_image_values = np.multiply(decomp_image_values, correct)
-        extrem *= correct
-        print("- scale to min: {}, max: {}".format(extrem[0], extrem[1]))
+        if normalized:
+            sqrt2 = math.sqrt(2)
+            decomp_image_values[i] = np.multiply(decomp_image_values[i], sqrt2)
+            extrem *= sqrt2
+        if not std:
+            min_dim = _read_min_dim(image_values[i])
+            decomp_image_values[i] = np.multiply(decomp_image_values[i], min_dim)
+            extrem *= min_dim
+        print("- undo normalization/standardization to min: {}, max: {}".format(extrem[0], extrem[1]))
+
+        if crop_min_max:
+            decomp_image_values[i] = np.subtract(decomp_image_values[i], extrem[0])
+            extrem -= extrem[0]
+            print("- shift by min to min: {}, max: {}".format(extrem[0], extrem[1]))
+
+            range_ex = extrem[1] - extrem[0]
+            correct = 256.0 / range_ex
+            decomp_image_values[i] = np.multiply(decomp_image_values[i], correct)
+            extrem *= correct
+            print("- scale to min: {}, max: {}".format(extrem[0], extrem[1]))
+
+    if color:
+        decomp_image_values=util.YUV2RGB(decomp_image_values)
 
     decomp_image_values = decomp_image_values.astype(np.uint8)
     return decomp_image_values
@@ -290,6 +302,9 @@ def truncate_elements_abs_below_threshold(image_values, threshold):
 def decomposition_2d_with_steps(image_values, normalized=True, standard=True, img_list=None, crop_min_max=True):
     # Only on squared images
 
+    #color_image?
+    color=True if len(image_values.shape)==3 else False
+
     if standard:
         # normalize
         if normalized:
@@ -301,7 +316,12 @@ def decomposition_2d_with_steps(image_values, normalized=True, standard=True, im
         until=_read_min_dim(image_values)
         while until>=2:
             for i in range(0, image_values.shape[0]):
-                image_values[i] = _decomposition_step(image_values[i], until, normalized)
+                if color:
+                    image_values[i,:,0] = _decomposition_step(image_values[i,:,0], until, normalized)
+                    image_values[i,:,1] = _decomposition_step(image_values[i,:,1], until, normalized)
+                    image_values[i,:,2] = _decomposition_step(image_values[i,:,2], until, normalized)
+                else:
+                    image_values[i] = _decomposition_step(image_values[i], until, normalized)
             img_list.append(np.copy(prepare_decomp_image_for_render(image_values, normalized, standard, crop_min_max)))
             until/=2
 
@@ -312,7 +332,13 @@ def decomposition_2d_with_steps(image_values, normalized=True, standard=True, im
         until = _read_min_dim(image_values)
         while until >= 2:
             for i in range(0, image_values.shape[1]):
-                image_values[:, i] = _decomposition_step(image_values[:, i], until, normalized)
+                if color:
+                    image_values[:,i,0] = _decomposition_step(image_values[:,i,0], until, normalized)
+                    image_values[:,i,1] = _decomposition_step(image_values[:,i,1], until, normalized)
+                    image_values[:,i,2] = _decomposition_step(image_values[:,i,2], until, normalized)
+                else:
+                    image_values[:, i] = _decomposition_step(image_values[:, i], until, normalized)
+
             img_list.append(np.copy(prepare_decomp_image_for_render(image_values, normalized, standard, crop_min_max)))
             until/=2
 
@@ -325,7 +351,12 @@ def decomposition_2d_with_steps(image_values, normalized=True, standard=True, im
         until = mindim
         while (until >= 2):
             for i in range(0, int(until)):
-                image_values[i] = _decomposition_step(image_values[i], until, normalized)
+                if color:
+                    image_values[i,:,0] = _decomposition_step(image_values[i,:,0], until, normalized)
+                    image_values[i,:,1] = _decomposition_step(image_values[i,:,1], until, normalized)
+                    image_values[i,:,2] = _decomposition_step(image_values[i,:,2], until, normalized)
+                else:
+                    image_values[i] = _decomposition_step(image_values[i], until, normalized)
             img_list.append(np.copy(prepare_decomp_image_for_render(image_values, normalized, standard, crop_min_max)))
 
             if (len(img_list)+1)%int(log+2)==0:
@@ -333,7 +364,12 @@ def decomposition_2d_with_steps(image_values, normalized=True, standard=True, im
                 img_list.append(None)
 
             for i in range(0, int(until)):
-                image_values[:, i] = _decomposition_step(image_values[:, i], until, normalized)
+                if color:
+                    image_values[:,i,0] = _decomposition_step(image_values[:,i,0], until, normalized)
+                    image_values[:,i,1] = _decomposition_step(image_values[:,i,1], until, normalized)
+                    image_values[:,i,2] = _decomposition_step(image_values[:,i,2], until, normalized)
+                else:
+                    image_values[:, i] = _decomposition_step(image_values[:, i], until, normalized)
             img_list.append(np.copy(prepare_decomp_image_for_render(image_values, normalized, standard,crop_min_max)))
             until /= 2
 
@@ -370,6 +406,9 @@ def decomposition_2d(image_values, normalized=True, standard=True):
 def reconstruction_2d_with_steps(image_values, normalized=True, standard=True, img_list=None, crop_min_max=True):
     # Only on squared images
 
+    #color_image?
+    color=True if len(image_values.shape)==3 else False
+
     if standard:
         # normalize
         if normalized:
@@ -383,7 +422,12 @@ def reconstruction_2d_with_steps(image_values, normalized=True, standard=True, i
         until = 2
         while until<=mindim:
             for i in range(0, image_values.shape[1]):
-                image_values[:, i] = _reconstruction_step(image_values[:, i], until, normalized)
+                if color:
+                    image_values[:,i,0] = _reconstruction_step(image_values[:,i,0], until, normalized)
+                    image_values[:,i,1] = _reconstruction_step(image_values[:,i,1], until, normalized)
+                    image_values[:,i,2] = _reconstruction_step(image_values[:,i,2], until, normalized)
+                else:
+                    image_values[:, i] = _reconstruction_step(image_values[:, i], until, normalized)
             img_list.append(np.copy(prepare_decomp_image_for_render(image_values, normalized, standard, crop_min_max)))
             until*=2
 
@@ -394,7 +438,12 @@ def reconstruction_2d_with_steps(image_values, normalized=True, standard=True, i
         until=2
         while until<=mindim:
             for i in range(0, image_values.shape[0]):
-                image_values[i] = _reconstruction_step(image_values[i], until, normalized)
+                if color:
+                    image_values[i,:,0] = _reconstruction_step(image_values[i,:,0], until, normalized)
+                    image_values[i,:,1] = _reconstruction_step(image_values[i,:,1], until, normalized)
+                    image_values[i,:,2] = _reconstruction_step(image_values[i,:,2], until, normalized)
+                else:
+                    image_values[i] = _reconstruction_step(image_values[i], until, normalized)
             img_list.append(np.copy(prepare_decomp_image_for_render(image_values, normalized, standard,crop_min_max)))
             until*=2
 
@@ -411,7 +460,12 @@ def reconstruction_2d_with_steps(image_values, normalized=True, standard=True, i
         until = 2
         while until<=mindim:
             for i in range(0, int(until)):
-                image_values[:, i] = _reconstruction_step(image_values[:, i], until, normalized)
+                if color:
+                    image_values[:,i,0] = _reconstruction_step(image_values[:,i,0], until, normalized)
+                    image_values[:,i,1] = _reconstruction_step(image_values[:,i,1], until, normalized)
+                    image_values[:,i,2] = _reconstruction_step(image_values[:,i,2], until, normalized)
+                else:
+                    image_values[:, i] = _reconstruction_step(image_values[:, i], until, normalized)
             img_list.append(np.copy(prepare_decomp_image_for_render(image_values, normalized, standard,crop_min_max)))
 
             if (len(img_list)+1)%int(log+2)==0:
@@ -419,7 +473,12 @@ def reconstruction_2d_with_steps(image_values, normalized=True, standard=True, i
                 img_list.append(None)
 
             for i in range(0, int(until)):
-                image_values[i] = _reconstruction_step(image_values[i], until, normalized)
+                if color:
+                    image_values[i,:,0] = _reconstruction_step(image_values[i,:,0], until, normalized)
+                    image_values[i,:,1] = _reconstruction_step(image_values[i,:,1], until, normalized)
+                    image_values[i,:,2] = _reconstruction_step(image_values[i,:,2], until, normalized)
+                else:
+                    image_values[i] = _reconstruction_step(image_values[i], until, normalized)
             img_list.append(np.copy(prepare_decomp_image_for_render(image_values, normalized, standard,crop_min_max)))
             until *= 2
 
