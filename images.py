@@ -58,7 +58,7 @@ def main():
     gray=False if color else True
 
     #image_values=load_image_as_ndarray_float(image_path, args.gray, args.yuv)
-    image_values=load_image_as_ndarray_float(image_path, gray=gray, yuv=yuv)
+    #image_values=load_image_as_ndarray_float(image_path, gray=gray, yuv=yuv)
     image_values=load_image_as_ndarray_float("img/Lenna.png", gray=gray, yuv=yuv)
     print("img shape {}".format(image_values.shape))
 
@@ -70,6 +70,7 @@ def main():
 
     img_list=[]
     if yuv:
+        #img_list.append(np.copy(image_values.astype(np.uint8)))
         img_list.append(np.copy(util.YUV2RGB(image_values).astype(np.uint8)))
     else:
         img_list.append(np.copy(image_values))
@@ -77,20 +78,22 @@ def main():
 
     norm=True
     std=True
-    crop_min_max = True
+    crop_min_max = False
     print("decomp")
-    decomp=Haar.decomposition_2d_with_steps(image_values, normalized=norm, standard=std, img_list=img_list, crop_min_max=crop_min_max)
+    decomp_image_values=Haar.decomposition_2d_with_steps(image_values, normalized=norm, standard=std, img_list=img_list, crop_min_max=crop_min_max)
 
     print("recon")
-    result=Haar.reconstruction_2d_with_steps(decomp, normalized=norm, standard=std, img_list=img_list, crop_min_max=crop_min_max)
+    result=Haar.reconstruction_2d_with_steps(decomp_image_values, normalized=norm, standard=std, img_list=img_list, crop_min_max=crop_min_max)
+
+    #save_as_image(result,"img/Lenna_Test.png",True)
 
     if yuv:
-        #diff_img = np.subtract(first_img, util.YUV2RGB(result))
-        diff_img = np.subtract(image_values, result)
+        #diff_img = np.subtract(util.YUV2RGB(image_values), util.YUV2RGB(result))
+        diff_img = np.copy(np.subtract(image_values, result))
     else:
         diff_img=np.subtract(image_values,result)
     #diff_img.astype(np.uint8)
-    diff_img=Haar.prepare_decomp_image_for_render(diff_img, normalized=norm, std=std,crop_min_max=False)
+    diff_img=Haar.prepare_decomp_image_for_render(diff_img, normalized=norm, std=std,crop_min_max=crop_min_max, decomp_img=False)
     img_list.append(diff_img)
     error=diff_img.sum()
     mul=3 if color else 1
@@ -128,10 +131,7 @@ def render_images(img_list, columns=4, rows=2):
     #for i in range(0, columns * rows):
     for i in range(0, len(img_list)):
         if img_list[i] is not None:
-            #img_list[i] = img_list[i].astype(np.uint8)
-
-            #ax.imshow(img_list[i], aspect='auto')
-            #fig.savefig(fname, dpi)
+            #img_list[i]=util.YUV2RGB(img_list[i])
 
             pl=fig.add_subplot(rows, columns, i + 1)
             pl.set_axis_off()
@@ -178,13 +178,14 @@ def load_image_as_ndarray_float(image_path='img/Lenna.png', gray=True, yuv=False
 
     if yuv:
         #reduce to 3 channels (otherwise our conversion won't work ;) )
-        image_values=image_values[...,:3]
-        image_values = image_values.astype(np.float32)
+        #image_values=image_values[...,:3]
+        image_values=image_values[:,:,:3]
+        image_values = image_values.astype(np.float64)
         image_values = util.RGB2YUV(image_values)
 
     # make sure, values can be negative (default uint)
-    #image_values=image_values.astype(np.float64)
-    image_values=image_values.astype(np.float32)
+    image_values=image_values.astype(np.float64)
+    #image_values=image_values.astype(np.float32)
     return image_values
 
 

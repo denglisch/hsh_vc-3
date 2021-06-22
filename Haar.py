@@ -48,13 +48,12 @@ def kd_test_decomp_recon_on_image():
     im.save("img/Lenna_RECON.png")
     return
 
-def prepare_decomp_image_for_render(image_values, normalized, std, crop_min_max=True):
+def prepare_decomp_image_for_render(image_values, normalized, std, crop_min_max=True, decomp_img=True):
     color=True if len(image_values.shape)==3 else False
     if color:
         until=3
     else:
         until=1
-
 
     # work on copy
     decomp_image_values = np.copy(image_values)
@@ -68,15 +67,22 @@ def prepare_decomp_image_for_render(image_values, normalized, std, crop_min_max=
         else:
             extrem = real_extrem
 
-        if normalized:
-            sqrt2 = math.sqrt(2)
-            decomp_image_values[i] = np.multiply(decomp_image_values[i], sqrt2)
-            extrem *= sqrt2
-        if not std:
-            min_dim = _read_min_dim(image_values[i])
-            decomp_image_values[i] = np.multiply(decomp_image_values[i], min_dim)
-            extrem *= min_dim
-        print("- undo normalization/standardization to min: {}, max: {}".format(extrem[0], extrem[1]))
+        if decomp_img:
+            if normalized:
+                sqrt2 = math.sqrt(2)
+                if color:
+                    decomp_image_values[i] = np.multiply(decomp_image_values[i], sqrt2)
+                else:
+                    decomp_image_values = np.multiply(decomp_image_values, sqrt2)
+                extrem *= sqrt2
+            if not std:
+                min_dim = _read_min_dim(image_values)
+                if color:
+                    decomp_image_values[i] = np.multiply(decomp_image_values[i], min_dim)
+                else:
+                    decomp_image_values = np.multiply(decomp_image_values, min_dim)
+                extrem *= min_dim
+            print("- undo normalization/standardization to min: {}, max: {}".format(extrem[0], extrem[1]))
 
         if crop_min_max:
             decomp_image_values[i] = np.subtract(decomp_image_values[i], extrem[0])
@@ -90,7 +96,7 @@ def prepare_decomp_image_for_render(image_values, normalized, std, crop_min_max=
             print("- scale to min: {}, max: {}".format(extrem[0], extrem[1]))
 
     if color:
-        decomp_image_values=util.YUV2RGB(decomp_image_values)
+        decomp_image_values = util.YUV2RGB(decomp_image_values)
 
     decomp_image_values = decomp_image_values.astype(np.uint8)
     return decomp_image_values
@@ -411,10 +417,10 @@ def reconstruction_2d_with_steps(image_values, normalized=True, standard=True, i
 
     if standard:
         # normalize
-        if normalized:
-            sqrt2 = math.sqrt(2)
-            # sqrt2=1
-            np.divide(image_values, sqrt2)
+        #if normalized:
+        #    sqrt2 = math.sqrt(2)
+        #    # sqrt2=1
+        #    np.divide(image_values, sqrt2)
 
         mindim = _read_min_dim(image_values)
 
@@ -483,6 +489,9 @@ def reconstruction_2d_with_steps(image_values, normalized=True, standard=True, i
             until *= 2
 
         image_values = np.multiply(image_values, mindim)
+
+    #correct last image
+    img_list[len(img_list)-1]=np.copy(prepare_decomp_image_for_render(image_values, normalized, standard,crop_min_max, False))
 
     return image_values
 
