@@ -144,7 +144,8 @@ def calc_subdivision(control_points_array, steps, subdivision_function=subdivisi
         # avg step
         cp_new_points_array=np.copy(new_points_array)
         for i, p in enumerate(new_points_array):
-            if i % 2 == 0:
+            #if i % 2 == 0:
+            if True:
                 previous_p = new_points_array[i - 1] if i > 0 else new_points_array[len(new_points_array) - 1]
                 previous_p=p
                 next_p = new_points_array[i + 1] if i < len(new_points_array) - 1 else new_points_array[0]
