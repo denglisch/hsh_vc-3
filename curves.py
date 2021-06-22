@@ -94,6 +94,7 @@ def render(control_points_array, points_array):
     #prepare plot
     fig, ax = plt.subplots(figsize=[12, 12])
     #init vis
+    points_array = calc_subdivision(control_points_array, 0)
     render_subdivision_step_update(control_points_array, points_array, 0, ax)
     #Slider (widget example adapted from: https://riptutorial.com/matplotlib/example/23577/interactive-controls-with-matplotlib-widgets)
     #slider axes
@@ -124,21 +125,31 @@ def render(control_points_array, points_array):
     return
 
 def subdivision_function(points_array):
+    cp_points_array = np.copy(points_array)
     for i, p in enumerate(points_array):
         if i%2==1:
-            previous=points_array[i - 1] if i>0 else points_array[len(points_array)-1]
-            next = points_array[i + 1] if i<len(points_array)-1 else points_array[0]
-            points_array[i]=0.5*(previous+next)
-    return points_array
+            previous_p=points_array[i - 1] if i>0 else points_array[len(points_array)-1]
+            previous_p=p
+            next_p = points_array[i + 1] if i<len(points_array)-1 else points_array[0]
+            cp_points_array[i]=0.5*(previous_p+next_p)
+    return cp_points_array
 
 def calc_subdivision(control_points_array, steps, subdivision_function=subdivision_function):
     new_points_array=control_points_array
-    for i in range(0,steps+1):
+    for i in range(0,steps):
         #split #each point is now doubled
         points_array=np.repeat(new_points_array, 2, axis=0)
-
-        #avg step
         new_points_array=subdivision_function(points_array)
+
+        # avg step
+        cp_new_points_array=np.copy(new_points_array)
+        for i, p in enumerate(new_points_array):
+            if i % 2 == 0:
+                previous_p = new_points_array[i - 1] if i > 0 else new_points_array[len(new_points_array) - 1]
+                previous_p=p
+                next_p = new_points_array[i + 1] if i < len(new_points_array) - 1 else new_points_array[0]
+                cp_new_points_array[i] = 0.5 * (previous_p + next_p)
+        new_points_array=cp_new_points_array
 
     return new_points_array
 
