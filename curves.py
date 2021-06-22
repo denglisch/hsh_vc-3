@@ -138,12 +138,34 @@ def splitting_step(points_array):
             cp_points_array[i]=0.5*(p+next_p)
     return cp_points_array
 
-def subdivision_chaikins(points_array):
+def subdivision_chaikin(points_array):
     cp_points_array = np.copy(points_array)
     for i, p in enumerate(points_array):
         previous_p = p
         next_p = points_array[i + 1] if i < len(points_array) - 1 else points_array[0]
         cp_points_array[i] = 0.5 * (previous_p + next_p)
+    return cp_points_array
+
+def subdivision_daubechie(points_array):
+    cp_points_array = np.copy(points_array)
+    one_plus_sqrt3=1.0+math.sqrt(3)
+    one_minus_sqrt3=1.0-math.sqrt(3)
+    for i, p in enumerate(points_array):
+        previous_p = p
+        next_p = points_array[i + 1] if i < len(points_array) - 1 else points_array[0]
+        cp_points_array[i] = 0.5 * (one_plus_sqrt3*previous_p + one_minus_sqrt3*next_p)
+    return cp_points_array
+
+def subdivision_dlg(points_array):
+    cp_points_array = np.copy(points_array)
+    for i, p in enumerate(points_array):
+        #keep points from prevoius step
+        if i%2==1:
+            prev_prev_p = points_array[i - 2] if i > 0 else points_array[len(points_array) - 2]
+            prev_p = points_array[i - 1] if i > 0 else points_array[len(points_array) - 1]
+            next_p = points_array[i + 1] if i < len(points_array) - 1 else points_array[0]
+            next_next_p = points_array[i + 2] if i < len(points_array) - 1 else points_array[1]
+            cp_points_array[i] = 1.0/16 * (-2.0*prev_prev_p+5.0*prev_p+10.0*p+5.0*next_p + -2.0*next_next_p)
     return cp_points_array
 
 def subdivision_b_spline_cubic(points_array):
@@ -155,7 +177,7 @@ def subdivision_b_spline_cubic(points_array):
         cp_points_array[i] = 0.25 * (previous_p + 2*mid + next_p)
     return cp_points_array
 
-def calc_subdivision(control_points_array, steps, subdivision_scheme_function=subdivision_b_spline_cubic):
+def calc_subdivision(control_points_array, steps, subdivision_scheme_function=subdivision_dlg):
     points_array=control_points_array
     for i in range(0,steps):
         #SPLITTING STEP
