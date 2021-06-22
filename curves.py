@@ -1,3 +1,5 @@
+import math
+
 import Haar
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
@@ -104,10 +106,12 @@ def render(control_points_array, points_array):
     def update_vis(step):
         #get selected step
 
-        #TODO: recalc points_array
         points_array=calc_subdivision(control_points_array, step)
 
-        print("Replot Subdivision Step {}".format(step))
+        count_cp=len(control_points_array)
+        count_p=count_cp*math.pow(2,step)+step
+        print("Replot Subdivision Step {} on {} control points with {} total points".format(step, count_cp, count_p))
+
         #rebuild vis on axes
         render_subdivision_step_update(control_points_array, points_array, step, ax)
         fig.canvas.draw_idle()
@@ -124,35 +128,43 @@ def render(control_points_array, points_array):
     plt.show()
     return
 
-def subdivision_function(points_array):
+def splitting_step(points_array):
+    points_array=np.repeat(points_array,2,axis=0)
+    # each point is now doubled
     cp_points_array = np.copy(points_array)
     for i, p in enumerate(points_array):
         if i%2==1:
-            previous_p=points_array[i - 1] if i>0 else points_array[len(points_array)-1]
-            previous_p=p
             next_p = points_array[i + 1] if i<len(points_array)-1 else points_array[0]
-            cp_points_array[i]=0.5*(previous_p+next_p)
+            cp_points_array[i]=0.5*(p+next_p)
     return cp_points_array
 
-def calc_subdivision(control_points_array, steps, subdivision_function=subdivision_function):
-    new_points_array=control_points_array
+def subdivision_chaikins(points_array):
+    cp_points_array = np.copy(points_array)
+    for i, p in enumerate(points_array):
+        previous_p = p
+        next_p = points_array[i + 1] if i < len(points_array) - 1 else points_array[0]
+        cp_points_array[i] = 0.5 * (previous_p + next_p)
+    return cp_points_array
+
+def subdivision_b_spline_cubic(points_array):
+    cp_points_array = np.copy(points_array)
+    for i, p in enumerate(points_array):
+        previous_p = points_array[i - 1] if i > 0 else points_array[len(points_array) - 1]
+        mid = p
+        next_p = points_array[i + 1] if i < len(points_array) - 1 else points_array[0]
+        cp_points_array[i] = 0.25 * (previous_p + 2*mid + next_p)
+    return cp_points_array
+
+def calc_subdivision(control_points_array, steps, subdivision_scheme_function=subdivision_b_spline_cubic):
+    points_array=control_points_array
     for i in range(0,steps):
-        #split #each point is now doubled
-        points_array=np.repeat(new_points_array, 2, axis=0)
-        new_points_array=subdivision_function(points_array)
+        #SPLITTING STEP
+        points_array=splitting_step(points_array)
 
-        # avg step
-        cp_new_points_array=np.copy(new_points_array)
-        for i, p in enumerate(new_points_array):
-            #if i % 2 == 0:
-            if True:
-                previous_p = new_points_array[i - 1] if i > 0 else new_points_array[len(new_points_array) - 1]
-                previous_p=p
-                next_p = new_points_array[i + 1] if i < len(new_points_array) - 1 else new_points_array[0]
-                cp_new_points_array[i] = 0.5 * (previous_p + next_p)
-        new_points_array=cp_new_points_array
+        # AVG STEP
+        points_array=subdivision_scheme_function(points_array)
 
-    return new_points_array
+    return points_array
 
 if __name__ == "__main__":
     # execute only if run as a script
