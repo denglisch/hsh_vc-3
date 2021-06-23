@@ -1,14 +1,8 @@
-import math
-
-import Haar
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
+from matplotlib.widgets import RadioButtons
 import numpy as np
-
-# TODO:
-# plt with slider for iteration steps
-# one fig is rendered (control points and curve)
-# subdivision
+import math
 
 #TODO:
 # task 4 and 5
@@ -96,17 +90,23 @@ def render(control_points_array, points_array):
     #prepare plot
     fig, ax = plt.subplots(figsize=[12, 12])
     #init vis
-    points_array = calc_subdivision(control_points_array, 0)
-    render_subdivision_step_update(control_points_array, points_array, 0, ax)
+    cur_step=0
+    points_array = calc_subdivision(control_points_array, cur_step)
+    render_subdivision_step_update(control_points_array, points_array, cur_step, ax)
     #Slider (widget example adapted from: https://riptutorial.com/matplotlib/example/23577/interactive-controls-with-matplotlib-widgets)
     #slider axes
     slider_ax = plt.axes([0.35, .03, 0.50, 0.02])
-    subdivision_slider = Slider(slider_ax, "Subdivision Step", 0, 10, valinit=0, valstep=1)
+    subdivision_slider = Slider(slider_ax, "Subdivision Step", 0, 10, valinit=cur_step, valstep=1)
+
+    subdivision_scheme_function=subdivision_chaikin
+
     #defined locally to have all values here
     def update_vis(step):
         #get selected step
+        nonlocal cur_step
+        cur_step=step
 
-        points_array=calc_subdivision(control_points_array, step)
+        points_array=calc_subdivision(control_points_array, step, subdivision_scheme_function=subdivision_scheme_function)
 
         count_cp=len(control_points_array)
         count_p=count_cp*math.pow(2,step)+step
@@ -119,6 +119,22 @@ def render(control_points_array, points_array):
     # call update function on slider value change
     subdivision_slider.on_changed(update_vis)
 
+    # from: https://matplotlib.org/2.0.2/examples/widgets/radio_buttons.html
+    #axcolor = 'lightgoldenrodyellow'
+    radio_ax = plt.axes([0.01, 0.03, 0.15, 0.15])#, facecolor=axcolor)
+    radio = RadioButtons(radio_ax, ('Chaikin', 'Daubechie', 'DLG', 'B-Spline cubic'))
+    def select_scheme(label):
+        hzdict = {'Chaikin': subdivision_chaikin,
+                  'Daubechie': subdivision_daubechie,
+                  'B-Spline cubic': subdivision_b_spline_cubic,
+                  'DLG': subdivision_dlg}
+        nonlocal subdivision_scheme_function
+        subdivision_scheme_function = hzdict[label]
+        update_vis(cur_step)
+    radio.on_clicked(select_scheme)
+
+
+    # this was to define points for initial curve ;)
     def onclick(event):
         ix, iy = event.xdata, event.ydata
         print("[{}, {}],".format(ix,iy))
