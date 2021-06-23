@@ -4,31 +4,44 @@ from matplotlib.widgets import RadioButtons
 import numpy as np
 import math
 
-#TODO:
-# task 4 and 5
+
+FUNCTION_DEPTH=50
+CP_DEPTH=5
 
 def main():
-    #control_points_array = np.random.rand(10, 2)
-    control_points_array = [[0.12043010752688174, 0.7251082251082251],
-        [0.25806451612903225, 0.8777056277056279],
-        [0.42258064516129035, 0.5876623376623378],
-        [0.6709677419354839, 0.5822510822510824],
-        [0.5591397849462366, 0.8614718614718615],
-        [0.8849462365591397, 0.8354978354978355],
-        [0.7935483870967742, 0.7424242424242425],
-        [0.9419354838709678, 0.48917748917748927],
-        [0.7516129032258064, 0.06709956709956713],
-        [0.48602150537634414, 0.22077922077922082],
-        [0.1870967741935484, 0.04112554112554115]]
-    print(control_points_array)
-    points_array=[]
-    #print(points_array)
-    render(control_points_array, points_array)
+    render()
     return
 
-def render_subdivision_step_update(control_points_array, points_array, step, ax):
+def function1(x,x0=0):
+    return 10*x**7+0.3
+def function2(x,x0=0):
+    return np.sin(x*10)*0.5+0.5
+def function3(x,x0=0):
+    fp_array=np.zeros(len(x))
+    idx = (np.abs(x - x0)).argmin()
+    fp_array[idx]=1
+    return fp_array
+
+def get_function_values(steps, function=function1, f_param=0):
+    from_v=0.0
+    to_v=1.0
+    step=to_v/steps
+    stop=to_v+step
+    x=np.arange(from_v,stop,step)
+    function_values=function(x, f_param)
+    fp_array = np.vstack((x, function_values)).T
+    print(fp_array)
+    return fp_array
+
+def render_subdivision_step_update(function_points_array, control_points_array, points_array, step, ax):
     ax.clear()
     ax.axis([0.0, 1.0, 0.0, 1.0])
+
+    #x = np.arange(0.0, 1.2, 0.01)
+    #function = x ** 7 + 0.3
+    #function = np.sin(x * 10) * 0.5 + 0.5
+    ## control_points_array = np.random.rand(10, 2)
+    #control_points_array = np.vstack((x, function)).T
 
     #radius
     r_cp=0.0025
@@ -41,79 +54,74 @@ def render_subdivision_step_update(control_points_array, points_array, step, ax)
 
     ann_offset = np.array([0.006, 0.003])  # offset for annotations
 
-    legend: list = []
+    if function_points_array is not None:
+        for i, fp in enumerate(function_points_array):
+            if i>0:
+                from_p = function_points_array[i - 1]
+                to_p = fp
+                ax.plot([from_p[0], to_p[0]], [from_p[1], to_p[1]], 'o', ms=0.0, ls='--', lw=1.0, color=c_cc)
 
     if control_points_array is not None:
         for i, cp in enumerate(control_points_array):
             disc = "c{}".format(i)
-            ax.add_patch(plt.Circle(cp, radius=r_cp, fc=c_cp, fill=True))
+            ax.add_patch(plt.Circle(cp, radius=r_cp, color=c_cp, fc=c_cp, fill=True))
             ax.annotate(disc, cp + ann_offset)
 
-            if i == 0:
-                from_p = control_points_array[len(control_points_array) - 1]
-            else:
-                from_p = control_points_array[i - 1]
-            to_p = cp
-            ax.plot([from_p[0], to_p[0]], [from_p[1], to_p[1]], 'o', ms=2.0, ls='-', lw=1.0, color=c_cc)
-
-        #disc="Control Points"
-        #if disc not in legend:
-        #legend.append(disc)
+            #if i>0:
+            #    from_p = control_points_array[i - 1]
+            #    to_p = cp
+            #    ax.plot([from_p[0], to_p[0]], [from_p[1], to_p[1]], 'o', ms=0.0, ls='-', lw=1.0, color=c_cc)
 
     if points_array is not None:
         for i,p in enumerate(points_array):
-            ax.add_patch(plt.Circle(p, radius=r_p, fc=c_p, fill=False))
-            #if "Points" not in legend: legend.append("Points")
-
-            if i==0:
-                from_p=points_array[len(points_array)-1]
-            else:
-                from_p=points_array[i-1]
-            to_p=p
-            ax.plot([from_p[0], to_p[0]], [from_p[1], to_p[1]], 'o', ms=2.0, ls='-', lw=1.0, color=c_sc)
-            #if "Curve" not in legend: legend.append("Curve")
-
-    #ax.legend(legend, loc="lower right")
+            ax.add_patch(plt.Circle(p, radius=r_p, color=c_p, fc=c_p, fill=False))
+            if i>0:
+                from_p = points_array[i - 1]
+                to_p = p
+                ax.plot([from_p[0], to_p[0]], [from_p[1], to_p[1]], 'o', ms=2.0, ls='-', lw=1.0, color=c_p)
     return
 
-def render(control_points_array, points_array):
+def render():
     # controlpoints as dots
     # points as circles
     # curve as line (acc. 2.2)
-
-    #def visualize_device_2d(meas, beacons, time):
-    """
-    Builds a mathplotlib widget with slider for timestamps.
-    Calls visualize_device_in_time_update()
-    """
 
     #prepare plot
     fig, ax = plt.subplots(figsize=[12, 12])
     #init vis
     cur_step=0
+    kronecker=0
+    global FUNCTION_DEPTH, CP_DEPTH
+    function_points_array = get_function_values(FUNCTION_DEPTH, function1,kronecker)
+    control_points_array = get_function_values(CP_DEPTH, function1,kronecker)
+
     points_array = calc_subdivision(control_points_array, cur_step)
-    render_subdivision_step_update(control_points_array, points_array, cur_step, ax)
+    render_subdivision_step_update(function_points_array, control_points_array, points_array, cur_step, ax)
     #Slider (widget example adapted from: https://riptutorial.com/matplotlib/example/23577/interactive-controls-with-matplotlib-widgets)
     #slider axes
     slider_ax = plt.axes([0.35, .03, 0.50, 0.02])
     subdivision_slider = Slider(slider_ax, "Subdivision Step", 0, 10, valinit=cur_step, valstep=1)
 
-    subdivision_scheme_function=subdivision_chaikin
+    subdivision_scheme_function=subdivision_b_spline_cubic_uniform
+    function=function1
 
     #defined locally to have all values here
     def update_vis(step):
         #get selected step
-        nonlocal cur_step
+        nonlocal cur_step, kronecker
         cur_step=step
+
+        function_points_array=get_function_values(FUNCTION_DEPTH,function,kronecker)
+        control_points_array=get_function_values(CP_DEPTH,function,kronecker)
 
         points_array=calc_subdivision(control_points_array, step, subdivision_scheme_function=subdivision_scheme_function)
 
         count_cp=len(control_points_array)
-        count_p=count_cp*math.pow(2,step)+step
+        count_p=int((count_cp-1)*math.pow(2,step)+1)#+step
         print("Replot Subdivision Step {} on {} control points with {} total points".format(step, count_cp, count_p))
 
         #rebuild vis on axes
-        render_subdivision_step_update(control_points_array, points_array, step, ax)
+        render_subdivision_step_update(function_points_array,control_points_array, points_array, step, ax)
         fig.canvas.draw_idle()
 
     # call update function on slider value change
@@ -121,17 +129,35 @@ def render(control_points_array, points_array):
 
     # from: https://matplotlib.org/2.0.2/examples/widgets/radio_buttons.html
     #axcolor = 'lightgoldenrodyellow'
-    radio_ax = plt.axes([0.01, 0.03, 0.15, 0.15])#, facecolor=axcolor)
-    radio = RadioButtons(radio_ax, ('Chaikin', 'Daubechie', 'DLG', 'B-Spline cubic'))
+    radio_ax = plt.axes([0.01, 0.03, 0.1, 0.15])#, facecolor=axcolor)
+    radio = RadioButtons(radio_ax, ('uniform', 'nonuniform'))
     def select_scheme(label):
-        hzdict = {'Chaikin': subdivision_chaikin,
-                  'Daubechie': subdivision_daubechie,
-                  'B-Spline cubic': subdivision_b_spline_cubic,
-                  'DLG': subdivision_dlg}
+        hzdict = {'uniform': subdivision_b_spline_cubic_uniform,
+                  'nonuniform': subdivision_b_spline_cubic_nonuniform}
         nonlocal subdivision_scheme_function
         subdivision_scheme_function = hzdict[label]
         update_vis(cur_step)
     radio.on_clicked(select_scheme)
+
+    radio2_ax = plt.axes([0.01, 0.21, 0.1, 0.15])  # , facecolor=axcolor)
+    radio2 = RadioButtons(radio2_ax, ('function1', 'function2', 'scaling\nfunction'))
+    def select_function(label):
+        hzdict = {'function1': function1,
+                  'function2': function2,
+                  'scaling\nfunction': function3}
+        nonlocal function
+        function = hzdict[label]
+        update_vis(cur_step)
+    radio2.on_clicked(select_function)
+
+    kronecker_ax = plt.axes([0.01, 0.18, 0.1, 0.03])  # , facecolor=axcolor)
+    kronecker_slider = Slider(kronecker_ax, "Kronecker", 0.0, 1.0, valinit=kronecker, valstep=1.0/CP_DEPTH)
+    #kronecker_slider = Slider(kronecker_ax, "Kronecker", 0, CP_DEPTH, valinit=int(CP_DEPTH/2), valstep=1)
+    def set_kronecker(val):
+        nonlocal kronecker
+        kronecker=val
+        update_vis(cur_step)
+    kronecker_slider.on_changed(set_kronecker)
 
 
     # this was to define points for initial curve ;)
@@ -144,15 +170,17 @@ def render(control_points_array, points_array):
     plt.show()
     return
 
-def splitting_step(points_array):
+def splitting_step_nonuniform(points_array):
     points_array=np.repeat(points_array,2,axis=0)
     # each point is now doubled
     cp_points_array = np.copy(points_array)
     for i, p in enumerate(points_array):
-        if i%2==1:
-            next_p = points_array[i + 1] if i<len(points_array)-1 else points_array[0]
-            cp_points_array[i]=0.5*(p+next_p)
-    return cp_points_array
+        if i<len(points_array)-1:
+            if i%2==1:
+                next_p = points_array[i + 1]
+                cp_points_array[i]=0.5*(p+next_p)
+    #pop last (doubled) element
+    return cp_points_array[:-1]
 
 def subdivision_chaikin(points_array):
     cp_points_array = np.copy(points_array)
@@ -193,14 +221,78 @@ def subdivision_b_spline_cubic(points_array):
         cp_points_array[i] = 0.25 * (previous_p + 2*mid + next_p)
     return cp_points_array
 
-def calc_subdivision(control_points_array, steps, subdivision_scheme_function=subdivision_dlg):
+def subdivision_b_spline_cubic_uniform(points_array):
+    cp_points_array = points_array
+    c_size=len(points_array)
+    if c_size<3:
+        print("too few values in point_array. Abort subdivision")
+        return points_array
+    #build up averaging matrix
+    mat_r=np.zeros((c_size, c_size))
+    for i in range(0,c_size):
+        mat_r[i,i]=2
+        if i>0: mat_r[i,i-1]=1
+        if i<c_size-1: mat_r[i,i+1]=1
+    mat_r*=1.0/4
+
+    #print(mat_r)
+    points_array[:,1]=np.dot(mat_r,cp_points_array[:,1])
+    return points_array
+
+def subdivision_b_spline_cubic_nonuniform(points_array):
+    cp_points_array=points_array
+    c_size=len(cp_points_array)
+
+    if c_size<8:
+        print("too few values in point_array. Abort subdivision")
+        return points_array
+
+    #build up averaging matrix
+    mat_r=np.zeros((c_size, c_size))
+    for i in range(3,c_size-3):
+        mat_r[i,i]=2
+        if i>0: mat_r[i,i-1]=1
+        if i<c_size-1: mat_r[i,i+1]=1
+    mat_r[0,0]=4
+    mat_r[c_size-1,c_size-1]=4
+
+    mat_r[1,1]=4
+    mat_r[c_size-2,c_size-2]=4
+
+    mat_r[2,2]=2
+    mat_r[2,1]=2
+
+    mat_r[c_size-3,c_size-3]=2
+    mat_r[c_size-3,c_size-2]=2
+
+    mat_r[3,2]=3.0/2
+    mat_r[3,3]=3.0/2
+    mat_r[c_size-4,c_size-3]=3.0/2
+    mat_r[c_size-4,c_size-4]=3.0/2
+
+    mat_r*=1.0/4
+
+    #print(mat_r)
+    points_array[:,1]=np.dot(mat_r,cp_points_array[:,1])
+
+    #for i in range(0,c_size):
+        #if i%2==1:
+            #points_array[:,1]=cp_points_array[:,1]
+    #print(points_array)
+
+    return points_array
+
+def calc_subdivision(control_points_array, steps, subdivision_scheme_function=subdivision_b_spline_cubic_uniform):
     points_array=control_points_array
     for i in range(0,steps):
         #SPLITTING STEP
-        points_array=splitting_step(points_array)
+        points_array=splitting_step_nonuniform(points_array)
+        #print(points_array)
+        #print(points_array.size)
 
         # AVG STEP
         points_array=subdivision_scheme_function(points_array)
+        #points_array=subdivision_b_spline_cubic_nonuniform(points_array)
 
     return points_array
 

@@ -81,12 +81,6 @@ def render(control_points_array, points_array):
     # points as circles
     # curve as line (acc. 2.2)
 
-    #def visualize_device_2d(meas, beacons, time):
-    """
-    Builds a mathplotlib widget with slider for timestamps.
-    Calls visualize_device_in_time_update()
-    """
-
     #prepare plot
     fig, ax = plt.subplots(figsize=[12, 12])
     #init vis
@@ -109,7 +103,7 @@ def render(control_points_array, points_array):
         points_array=calc_subdivision(control_points_array, step, subdivision_scheme_function=subdivision_scheme_function)
 
         count_cp=len(control_points_array)
-        count_p=count_cp*math.pow(2,step)+step
+        count_p=count_cp*math.pow(2,step)#+step
         print("Replot Subdivision Step {} on {} control points with {} total points".format(step, count_cp, count_p))
 
         #rebuild vis on axes
