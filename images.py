@@ -51,9 +51,17 @@ def load_args():
 
 
 def main():
+
+    Haar.kd_test_preprocessing_on_gray()
+    #Haar.kd_test_compression_on_image()
+
+    exit(0)
+
     args = load_args()
 
     color=True
+
+
     yuv=True if color else False
     gray=False if color else True
 

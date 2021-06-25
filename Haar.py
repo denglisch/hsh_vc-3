@@ -145,6 +145,35 @@ def kd_test_color_compression_on_yuv_image():
     Image.fromarray(image_values).save("img/Lenna_1024_YUV_COMP.png")
     return
 
+def kd_test_preprocessing_on_gray():
+    # load lenna as 2d grayscale array
+    image_values = np.array(Image.open('img/Lenna_WRONG.png').convert('L'))
+
+    # make sure, values can be negative (default uint)
+    image_values = image_values.astype(np.float64)
+
+    print("compression")
+    # image_values=_compression_2d_only_decomp(image_values, squared_error_stollnitz=20000)
+    # image_values=_compression_2d_only_decomp(image_values, number_of_coeffs_left=10000)
+    image_values = _compression_2d_only_decomp(image_values, number_of_coeffs_left_exact=60)
+    # image_values=_compression_2d_only_decomp(image_values, squared_error=20000000)
+
+    print("- quantization")
+    #image_values[image_values<0]=-1
+    #image_values[image_values>=0]=1
+
+    print("- reconstruction")
+    image_values=reconstruction_2d(image_values, normalized=True, standard=True)
+
+    # save img
+    image_values=image_values.astype(np.uint8)
+
+    image_values[image_values < 127] = 0
+    image_values[image_values >= 127] = 255
+
+    Image.fromarray(image_values).save("img/Lenna_PRE.png")
+    return
+
 def compression_2d_yuv(image_values,
                        y_squared_error=None, y_squared_error_stollnitz=None,
                        y_number_of_coeffs_left=None, y_number_of_coeffs_left_exact=None,
@@ -172,53 +201,51 @@ def compression_2d_yuv(image_values,
 
     return
 
-def compression_2d(image_values,
+def _compression_2d_only_decomp(image_values,
                    squared_error=None,
                    squared_error_stollnitz=None,
                    number_of_coeffs_left_exact=None,
                    number_of_coeffs_left=None):
-    # return compressed image_values
-
     # normalized 2d decomp.
     print("- decomposition")
-    image_values=decomposition_2d(image_values, normalized=True, standard=True)
+    image_values = decomposition_2d(image_values, normalized=True, standard=True)
     # one array of coefficients
-    coefficients=image_values.flatten()
+    coefficients = image_values.flatten()
     # sort by decreasing magnitude
     # commented since it can become very slow
     # coefficients[::-1].sort()
-    truncated=0
-    threshold=0
-    count_zero_pre=coefficients.size-np.count_nonzero(image_values)
-    c_sum=coefficients.size
+    truncated = 0
+    threshold = 0
+    count_zero_pre = coefficients.size - np.count_nonzero(image_values)
+    c_sum = coefficients.size
 
     if squared_error is not None:
         # either by max error
         print("- find threshold by max squared error of {} (Allerkamp)".format(squared_error))
-        thres_min=np.abs(coefficients).min() # abs(coefficients[len(coefficients)-1])
-        thres_max=np.abs(coefficients).max() # abs(coefficients[0])
+        thres_min = np.abs(coefficients).min()  # abs(coefficients[len(coefficients)-1])
+        thres_max = np.abs(coefficients).max()  # abs(coefficients[0])
         threshold = (thres_min + thres_max) / 2.
-        epsilon_squared=squared_error
+        epsilon_squared = squared_error
         sum_squared = 0
         # find threashold
         print("- find threshold by max squared error of {}".format(epsilon_squared))
-        found_thres=False
+        found_thres = False
         while not found_thres:
-            threshold=(thres_min+thres_max)/2.
-            sum_squared=0
+            threshold = (thres_min + thres_max) / 2.
+            sum_squared = 0
             for i in range(0, coefficients.size):
-                if abs(coefficients[i])<threshold:
-                    sum_squared+=math.pow(coefficients[i],2)
-            if sum_squared<epsilon_squared:
-                thres_min=threshold
+                if abs(coefficients[i]) < threshold:
+                    sum_squared += math.pow(coefficients[i], 2)
+            if sum_squared < epsilon_squared:
+                thres_min = threshold
             else:
-                thres_max=threshold
-            #until thres_min=thres_max
-            #print("min: {} max: {}".format(thres_min, thres_max))
-            found_thres=(thres_max-thres_min)<0.1
+                thres_max = threshold
+            # until thres_min=thres_max
+            # print("min: {} max: {}".format(thres_min, thres_max))
+            found_thres = (thres_max - thres_min) < 0.1
         print("-- threshold: {} with squared error of {}".format(threshold, sum_squared))
 
-    #Stollnitz et al.
+    # Stollnitz et al.
     # "Another efficient approach to L_2􏰪 compression is to repeatedly
     # discard all coefficients smaller in magnitude than a threshold􏰥
     # increasing the threshold by a factor of two in each iteration􏰥
@@ -226,57 +253,56 @@ def compression_2d(image_values,
     if squared_error_stollnitz is not None:
         print("- find threshold by max squared error of {} (Stollnitz et al.)".format(squared_error_stollnitz))
         # make sure min is not zero
-        threshold=np.abs(coefficients[np.nonzero(coefficients)]).min()
+        threshold = np.abs(coefficients[np.nonzero(coefficients)]).min()
         sum_squared = 0
-        last_sum_squared=0
-        found_thres=False
+        last_sum_squared = 0
+        found_thres = False
         while True:
-            #print(threshold)
+            # print(threshold)
             sum_squared = 0
             for i in range(0, coefficients.size):
                 if abs(coefficients[i]) < threshold:
                     sum_squared += math.pow(coefficients[i], 2)
-            if sum_squared<=squared_error_stollnitz:
-                threshold*=2
-                last_sum_squared=sum_squared
+            if sum_squared <= squared_error_stollnitz:
+                threshold *= 2
+                last_sum_squared = sum_squared
             else:
                 break
         print("-- threshold: {} with squared error of {}".format(threshold, last_sum_squared))
-        print("-- for threshold*2={} squared error would be {}".format(threshold*2, sum_squared))
-
+        print("-- for threshold*2={} squared error would be {}".format(threshold * 2, sum_squared))
 
     # or max coefficients
     # returning threshold also?
     if number_of_coeffs_left_exact is not None:
         print("- find threshold by {} coefficients left".format(number_of_coeffs_left_exact))
-        #find n-th highest value
+        # find n-th highest value
         print("-- find {}-th highest magnitude".format(number_of_coeffs_left_exact))
-        n=number_of_coeffs_left_exact
-        abs_coeff=np.abs(coefficients)
-        k=np.partition(abs_coeff, -n)[-n]
-        threshold=np.min(np.abs(k))
+        n = number_of_coeffs_left_exact
+        abs_coeff = np.abs(coefficients)
+        k = np.partition(abs_coeff, -n)[-n]
+        threshold = np.min(np.abs(k))
         # truncate all below
 
     # or max coefficients
     # returning threshold also?
-    #if number_of_coeffs_left is not None:
+    # if number_of_coeffs_left is not None:
     if number_of_coeffs_left is not None:
         print("- find threshold by {} coefficients left (approx. Stollnitz)".format(number_of_coeffs_left))
 
         # make sure min is not zero
-        threshold=np.abs(coefficients[np.nonzero(coefficients)]).min()
-        to_truncate=coefficients.size-number_of_coeffs_left
-        if(to_truncate<0):
+        threshold = np.abs(coefficients[np.nonzero(coefficients)]).min()
+        to_truncate = coefficients.size - number_of_coeffs_left
+        if (to_truncate < 0):
             print("-- all coefficients will stay")
         else:
-            count=count_zero_pre
+            count = count_zero_pre
             while True:
-                threshold*=2
-                copy=np.copy(image_values)
-                copy, plus=truncate_elements_abs_below_threshold(copy, threshold)
-                if count+plus>=to_truncate:
-                    print("-- stop: next would truncate down to {} elements".format(c_sum-count-plus))
-                    threshold/=2
+                threshold *= 2
+                copy = np.copy(image_values)
+                copy, plus = truncate_elements_abs_below_threshold(copy, threshold)
+                if count + plus >= to_truncate:
+                    print("-- stop: next would truncate down to {} elements".format(c_sum - count - plus))
+                    threshold /= 2
                     break
 
     # truncate small values in image_values
@@ -286,9 +312,18 @@ def compression_2d(image_values,
     stay = np.count_nonzero(image_values)
     print("-- truncated {} values ({} %), {} were zero before ({} %), {} stay ({} %)".format(
         truncated, truncated / c_sum * 100,
-        count_zero_pre, count_zero_pre / c_sum*100,
+        count_zero_pre, count_zero_pre / c_sum * 100,
         stay, stay / c_sum * 100))
 
+    return image_values
+
+def compression_2d(image_values,
+                   squared_error=None,
+                   squared_error_stollnitz=None,
+                   number_of_coeffs_left_exact=None,
+                   number_of_coeffs_left=None):
+    # return compressed image_values
+    image_values=_compression_2d_only_decomp(image_values,squared_error,squared_error_stollnitz,number_of_coeffs_left_exact,number_of_coeffs_left)
     # recon image
     print("- reconstruction")
     image_values=reconstruction_2d(image_values, normalized=True, standard=True)
