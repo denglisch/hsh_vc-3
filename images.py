@@ -93,7 +93,10 @@ def main():
     else:
         diff_img=np.subtract(image_values,result)
     #diff_img.astype(np.uint8)
-    diff_img=Haar.prepare_decomp_image_for_render(diff_img, normalized=norm, std=std,crop_min_max=crop_min_max, decomp_img=False)
+    #diff_img=Haar.prepare_decomp_image_for_render(diff_img, normalized=norm, std=std,crop_min_max=crop_min_max, decomp_img=False)
+    diff_img=np.abs(diff_img)
+    diff_img=diff_img.astype(np.uint8)
+
     img_list.append(diff_img)
     error=diff_img.sum()
     mul=3 if color else 1
@@ -131,7 +134,7 @@ def render_images(img_list, columns=4, rows=2):
     #for i in range(0, columns * rows):
     for i in range(0, len(img_list)):
         if img_list[i] is not None:
-            #img_list[i]=util.YUV2RGB(img_list[i])
+            #img_list[i]=util.YUV2RGB(img_list[i]).astype(np.uint8)
 
             pl=fig.add_subplot(rows, columns, i + 1)
             pl.set_axis_off()
