@@ -33,7 +33,7 @@ def render_points_array(ax, control_points_array=None, points_array=None):
 
     if points_array is not None:
         for i,p in enumerate(points_array):
-            #ax.add_patch(plt.Circle(p, radius=r_p, fc=c_p, fill=False))
+            ax.add_patch(plt.Circle(p, radius=r_p, fc=c_p, fill=False))
             if i>0:
                 from_p=points_array[i-1]
                 to_p=p
