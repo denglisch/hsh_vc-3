@@ -50,7 +50,7 @@ def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, upd
     #Slider (widget example adapted from: https://riptutorial.com/matplotlib/example/23577/interactive-controls-with-matplotlib-widgets)
     #slider axes
     slider_ax = plt.axes([0.35, .03, 0.50, 0.02])
-    level_slider = Slider(slider_ax, "Level", 0, slider_max_level, valinit=level, valstep=1)
+    level_slider = Slider(slider_ax, "Level", 0, slider_max_level, valinit=level, valstep=0.1)
 
     points_array=original_curve_points_array
 
