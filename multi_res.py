@@ -149,40 +149,43 @@ def _calc_length_from_j(j):
     return 2**j+1
 
 def calc_new_points_and_return_to_draw(level):
-    return _calc_new_points_and_return_to_draw_discrete(level)
-    #return _calc_new_points_and_return_to_draw_fractional(level)
+    #return _calc_new_points_and_return_to_draw_discrete(level)
+    return _calc_new_points_and_return_to_draw_fractional(level)
 
 def _calc_new_points_and_return_to_draw_fractional(level):
     level_ceil=math.ceil(level)
     level_floor=math.floor(level)
     frac_level=level-level_floor
-    print(frac_level, level_ceil, level_floor)
+    #print(frac_level, level_ceil, level_floor)
+
     global FRAC_RES
-    if frac_level<FRAC_RES:
+    if frac_level*1.1<FRAC_RES:
         #do if it was an integer ;)
         return _calc_new_points_and_return_to_draw_discrete(level_floor)
 
-    print("fractional-level from {} to {}".format(level_ceil, level_floor))
     #else calc fractional-level curve
-    #first down to level.ceil
-    point_array_j_plus_1=_calc_new_points_and_return_to_draw_discrete(level_ceil)
-    print("array length j:{}".format(len(point_array_j_plus_1)))
-
-    lenth_of_j_plus_1=int((1.0*frac_level)*len(point_array_j_plus_1))
-    point_array_j_plus_12=point_array_j_plus_1[:lenth_of_j_plus_1]
-    print("-until index:{}".format(lenth_of_j_plus_1))
-
+    print("fractional-level from {} to {} with µ={}".format(level_floor,level_ceil,frac_level))
+    #first down to level.ceil (if come from high j)
+    #print("-array length j:{}".format(len(point_array_j_plus_1)))
+    point_array_j_plus_1=np.copy(_calc_new_points_and_return_to_draw_discrete(level_ceil))
     #than down to level.floor
-    point_array_j=_calc_new_points_and_return_to_draw_discrete(level_floor)
-    print("array length j+1:{}".format(len(point_array_j)))
+    point_array_j=np.copy(_calc_new_points_and_return_to_draw_discrete(level_floor))
+    #print("-array length j+1:{}".format(len(point_array_j)))
 
-    lenth_of_j=int(frac_level*len(point_array_j))
-    point_array_j2=point_array_j[:lenth_of_j]
-    print(lenth_of_j, lenth_of_j_plus_1)
-    print("-until index:{}".format(lenth_of_j))
+    point_array=_interpolate_curves(point_array_j,point_array_j_plus_1,frac_level)
+    return point_array
 
-    point_array=np.concatenate((point_array_j_plus_12,point_array_j2),axis=0)
-    print(point_array.shape, point_array_j2.shape, point_array_j_plus_12.shape)
+def _interpolate_curves(point_array_j,point_array_j_plus_1, frac_level):
+
+    doubled_j=np.repeat(point_array_j,2,axis=0)
+    #pop last element
+    doubled_j=doubled_j[:-1]
+    print("doubled j: {}".format(doubled_j.shape))
+
+    print("#j: {} #j+1: {}".format(point_array_j.shape,point_array_j_plus_1.shape))
+
+    point_array=(1.0-frac_level)*doubled_j+frac_level*point_array_j_plus_1
+    print("interpolated shape: {}".format(point_array.shape))
 
     return point_array
 
@@ -195,8 +198,7 @@ def _calc_new_points_and_return_to_draw_discrete(level):
         c_length=_calc_length_from_j(level)
         return cur_points[:c_length]
 
-    #TODO change for fractional level
-    #for now j=level
+    #be sure, we have integer levels
     j_target=int(level)
     j_actual=int(cur_level)
     cur_level=level
@@ -206,63 +208,46 @@ def _calc_new_points_and_return_to_draw_discrete(level):
         cur_level=1
 
     if j_target>j_actual:
-        points_to_return=np.array([])
         print("-synthesis from {} up to j: {}".format(j_actual, j_target))
         while j_target>j_actual:
             j_actual+=1
             print("--synthesis up to j: {}".format(j_actual))
             #make synthesis
-            PQ=_calc_synthesis_matrices_linear_b_splines(j_actual)
             cd_length = _calc_length_from_j(j_actual)
             cd_j_minus_1=cur_points[:cd_length]
-            #cd_j = np.concatenate((points_array, points_array), axis=1)
+            PQ=_calc_synthesis_matrices_linear_b_splines(j_actual)
             c_j = np.dot(PQ, cd_j_minus_1)
-            print("shape c_j: {}".format(c_j.shape))
-
+            #update global points
             cur_points[:cd_length]=c_j
-            points_to_return=c_j
-
-        return points_to_return
+            #return points to render
+            #points_to_return=c_j
+        return cur_points[:_calc_length_from_j(cur_level)]
 
     if j_target<j_actual:
-        points_to_return=np.array([])
         print("-analysis from {} down to j: {}".format(j_actual, j_target))
         while j_target<j_actual:
             #make analysis
             print("--analysis down to j: {}".format(j_actual-1))
-            AB=_calc_analysis_matrices_from_semiorthogonal_pq(j_actual)
             c_length=_calc_length_from_j(j_actual)
-            sub_points=cur_points[:c_length]
-            #print("subarray shape: {}".format(sub_points.shape))
+            c_j=cur_points[:c_length]
 
-            cd_j_minus_1 = np.dot(AB, sub_points)
-            #split into c and d
-            # A,B=np.vsplit(AB,[2**(j-1)+1])
-            #c_j_minus_1 = cd_j_minus_1[:_calc_length_from_j(j_target)]
-            #d_j_minus_1 = cd_j_minus_1[:_calc_length_from_j(j_target)-1]
-            # c_j_minus_1=np.dot(A.T,original_curve_points_array)
-            # d_j_minus_1=np.dot(Q,original_curve_points_array)
-
-            #print("c^(j-1) shape: {}".format(c_j_minus_1.shape))
-            #print("d^(j-1) shape: {}".format(d_j_minus_1.shape))
-
-            cur_points[:c_length]=cd_j_minus_1
-
-            c_minus_length = _calc_length_from_j(j_actual-1)
-            points_to_return=cd_j_minus_1[:c_minus_length]
-
-            # analysis (decomposotion)
             # calc: cj-1=cj*Aj
             # calc: dj-1=cj*Bj
-            #c_j_minus_1 = A * c_j
-            #d_j_minus_1 = B * c_j
-            # easier: solve P|Q * \frac{c^(j-1), d^(j-1)}=c^j}
-            #cj_1_dj_1 = np.linalg.solve(PQ, c_j)
-            # cj_1_dj_1 now are values without using AB ;)
+            #AB=_calc_analysis_matrices_from_semiorthogonal_pq(j_actual)
+            #cd_j_minus_1 = np.dot(AB, c_j)
+            # "easier": solve P|Q * \frac{c^(j-1), d^(j-1)}=c^j}
+            PQ=_calc_synthesis_matrices_linear_b_splines(j_actual)
+            cd_j_minus_1 = np.linalg.solve(PQ, c_j)
+            # cd_j_minus_1 now are values without using AB ;)
 
+            #update global points
+            cur_points[:c_length]=cd_j_minus_1
+
+            c_minus_1_length = _calc_length_from_j(j_actual-1)
+            #return points to render (only c not d)
+            #points_to_return=cd_j_minus_1[:c_minus_1_length]
             j_actual-=1
-
-        return points_to_return
+        return cur_points[:_calc_length_from_j(cur_level)]
 
 
 
