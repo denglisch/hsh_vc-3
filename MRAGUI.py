@@ -24,7 +24,7 @@ def render_points_array(ax, control_points_array=None, points_array=None):
         for i, cp in enumerate(control_points_array):
             disc = "c{}".format(i)
             ax.add_patch(plt.Circle(cp, radius=r_cp, fc=c_cp, fill=True))
-            ax.annotate(disc, cp + ann_offset)
+            #ax.annotate(disc, cp + ann_offset)
 
             if i > 0:
                 from_p = control_points_array[i - 1]
@@ -40,19 +40,19 @@ def render_points_array(ax, control_points_array=None, points_array=None):
                 ax.plot([from_p[0], to_p[0]], [from_p[1], to_p[1]], 'o', ms=2.0, ls='-', lw=1.0, color=c_sc)
     return
 
-def build_plt(curve_points_array, get_new_points_to_draw_for_level):
+def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, slider_max_level=10):
     #prepare plot
     fig, ax = plt.subplots(figsize=[12, 12])
     #init vis
-    level=0
+    level=slider_max_level
 
     #render_points_array(ax, curve_points_array, points_array, level)
     #Slider (widget example adapted from: https://riptutorial.com/matplotlib/example/23577/interactive-controls-with-matplotlib-widgets)
     #slider axes
     slider_ax = plt.axes([0.35, .03, 0.50, 0.02])
-    level_slider = Slider(slider_ax, "Level", 0, 10, valinit=level, valstep=1)
+    level_slider = Slider(slider_ax, "Level", 0, slider_max_level, valinit=level, valstep=1)
 
-    points_array=curve_points_array
+    points_array=original_curve_points_array
 
     #defined locally to have all values here
     def update_vis(val):
@@ -69,7 +69,7 @@ def build_plt(curve_points_array, get_new_points_to_draw_for_level):
         #print("Replot at Level {} on {} control points with {} total points".format(step, count_cp, count_p))
 
         #rebuild vis on axes
-        render_points_array(ax, curve_points_array, points_array)
+        render_points_array(ax, original_curve_points_array, points_array)
         fig.canvas.draw_idle()
     update_vis(level)
 
@@ -139,7 +139,7 @@ def build_plt(curve_points_array, get_new_points_to_draw_for_level):
 
         # update curve via sliders and draw
         #update_vis(level)
-        render_points_array(ax, curve_points_array, points_array)
+        render_points_array(ax, original_curve_points_array, points_array)
         #sliders[pind].set_val(yvals[pind])
         fig.canvas.draw_idle()
 

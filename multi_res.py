@@ -8,26 +8,25 @@ import MRAGUI
 FUNCTION_DEPTH=50
 CP_DEPTH=5
 
-curve_points_array=np.array([])
+original_curve_points_array=np.array([])
 cur_points=np.array([])
-cur_details=np.array([])
 cur_level=0
 
 def main():
-    global curve_points_array, cur_points, cur_details
-    curve_points_array = [[0.12043010752688174, 0.7251082251082251],
-                            [0.25806451612903225, 0.8777056277056279],
-                            [0.42258064516129035, 0.5876623376623378],
-                            [0.6709677419354839, 0.5822510822510824],
-                            [0.5591397849462366, 0.8614718614718615],
-                            [0.8849462365591397, 0.8354978354978355],
-                            [0.7935483870967742, 0.7424242424242425],
-                            [0.9419354838709678, 0.48917748917748927],
-                            [0.7516129032258064, 0.06709956709956713],
-                            [0.48602150537634414, 0.22077922077922082],
-                            [0.1870967741935484, 0.04112554112554115]]
+    global original_curve_points_array, cur_points, cur_level
+    original_curve_points_array = [[0.12043010752688174, 0.7251082251082251],
+                                   [0.25806451612903225, 0.8777056277056279],
+                                   [0.42258064516129035, 0.5876623376623378],
+                                   [0.6709677419354839, 0.5822510822510824],
+                                   [0.5591397849462366, 0.8614718614718615],
+                                   [0.8849462365591397, 0.8354978354978355],
+                                   [0.7935483870967742, 0.7424242424242425],
+                                   [0.9419354838709678, 0.48917748917748927],
+                                   [0.7516129032258064, 0.06709956709956713],
+                                   [0.48602150537634414, 0.22077922077922082],
+                                   [0.1870967741935484, 0.04112554112554115]]
 
-    curve_points_array = np.array(
+    original_curve_points_array = np.array(
         [[0.09354838709677418, 0.7142857142857143],
          [0.16989247311827957, 0.8041125541125542],
          [0.3182795698924731, 0.9253246753246753],
@@ -53,7 +52,7 @@ def main():
          [0.1268817204301075, 0.7077922077922079],
          ])
 
-    curve_points_array=np.array([
+    original_curve_points_array=np.array([
         [0.15698924731182798, 0.31926406926406925],
         [0.24516129032258063, 0.30519480519480524],
         [0.17311827956989248, 0.25],
@@ -120,73 +119,106 @@ def main():
         [0.346236559139785, 0.8181818181818182],
         [0.3075268817204301, 0.8766233766233766],
     ])
-    cur_points=curve_points_array
+    cur_points=np.copy(original_curve_points_array)
 
-    MRAGUI.build_plt(curve_points_array, get_new_points_to_draw_for_level)
+    j=_calc_j_from_array_length(len(original_curve_points_array))
+    cur_level=j
+
+    MRAGUI.build_plt(original_curve_points_array, get_new_points_to_draw_for_level, slider_max_level=j)
     return
 
+def _calc_j_from_array_length(length):
+    #len(c_j)=m=2^j+1
+    # <=> log(m-1,2)=j
+    return int(math.log(length-1,2))
+def _calc_length_from_j(j):
+    #len(c_j)=m=2^j+1
+    return 2**j+1
+
 def get_new_points_to_draw_for_level(level):
-    global curve_points_array, cur_points, cur_details, cur_level
-    cur_points, cur_details=calc_new_points(cur_points, level)
-    print("return shape: {}, {}".format(cur_points.shape, cur_details.shape))
+    global original_curve_points_array, cur_points, cur_details
+    points_to_draw=calc_new_points(level)
+    return points_to_draw
 
-    return cur_points
+def calc_new_points(level=0):
+    global cur_level, cur_points
+    if cur_level==level:
+        #nothing to do
+        c_length=_calc_length_from_j(level)
+        return cur_points[:c_length]
 
-def calc_new_points(c_j, level=0):
-    if level==0:
-        j=len(c_j)
-    else:
-        # j=int(len(curve_points_array) / ((level + 1) * 2))
-        j = int(len(c_j) / (2 * level))
-    #print("curve points shape: {}".format(c_j.shape))
-    #print("level: {}, j: {}".format(level, j))
+    #TODO change for fractional level
+    #for now j=level
+    j_target=int(level)
+    j_actual=int(cur_level)
+    cur_level=level
 
-    if level==0:
-        return c_j,np.array([])
+    if j_target>j_actual:
+        #make synthesis
+        PQ=_calc_synthesis_matrices_linear_b_splines(j_target)
+        cd_length = _calc_length_from_j(j_target)
+        cd_j_minus_1=cur_points[:cd_length]
+        #cd_j = np.concatenate((points_array, points_array), axis=1)
+        c_j = np.dot(PQ, cd_j_minus_1)
+        print("shape c_j: {}".format(c_j.shape))
 
-    cd_j_minus_1=c_j
-    j = int(len(cd_j_minus_1)/2)
+        cur_points[:cd_length]=c_j
 
-    j=int(math.log(len(cd_j_minus_1)-1,2))
-    #print("new j: {}".format(j))
+        return c_j
 
-    print("curve points shape: {}".format(cd_j_minus_1.shape))
-    print("level: {}, j: {}".format(level, j))
+    if j_target<j_actual:
+        #make analysis
+        #TODO: Do until target is achieved
+        AB=_calc_analysis_matrices_from_semiorthogonal_pq(j_actual)
+        c_length=_calc_length_from_j(j_actual)
+        print("j: {}".format(j_actual))
+        sub_points=cur_points[:c_length]
+        print("subarray shape: {}".format(sub_points.shape))
 
-    #all_j_minus_1=calc_new_points(curve_points_array)
-    #A,B,P,Q, AB=calc_multi_res(int(len(curve_points_array)/2))
+        cd_j_minus_1 = np.dot(AB, sub_points)
+        #split into c and d
+        # A,B=np.vsplit(AB,[2**(j-1)+1])
+        c_j_minus_1 = cd_j_minus_1[:_calc_length_from_j(j_target)]
+        d_j_minus_1 = cd_j_minus_1[:_calc_length_from_j(j_target)-1]
+        # c_j_minus_1=np.dot(A.T,original_curve_points_array)
+        # d_j_minus_1=np.dot(Q,original_curve_points_array)
 
-    #PQ=np.concatenate((P,Q),axis=1)
+        print("c^(j-1) shape: {}".format(c_j_minus_1.shape))
+        print("d^(j-1) shape: {}".format(d_j_minus_1.shape))
 
-    #all_j_minus_1=np.dot(AB, curve_points_array)
+        cur_points[:c_length]=cd_j_minus_1
 
-    #c_j_minus_1=np.dot(A.T,curve_points_array)
-    #d_j_minus_1=np.dot(Q,curve_points_array)
-    #all_j_minus_1=all_j_minus_1[:len(A)]
+        # analysis (decomposotion)
+        # calc: cj-1=cj*Aj
+        # calc: dj-1=cj*Bj
+        #c_j_minus_1 = A * c_j
+        #d_j_minus_1 = B * c_j
+        # easier: solve P|Q * \frac{c^(j-1), d^(j-1)}=c^j}
+        #cj_1_dj_1 = np.linalg.solve(PQ, c_j)
+        # cj_1_dj_1 now are values without using AB ;)
 
-    A, B, P, Q, AB = calc_multi_res(j)
-    #print(np.shape(A))
-    #print(np.shape(B))
-    #print(np.shape(P))
-    #print(np.shape(Q))
-
-    # PQ=np.concatenate((P,Q),axis=1)
-
-    cd_j_minus_1 = np.dot(AB, cd_j_minus_1)
-
-    # c_j_minus_1=np.dot(A.T,curve_points_array)
-    # d_j_minus_1=np.dot(Q,curve_points_array)
-    c_j_minus_1 = cd_j_minus_1[:len(A)]
-    d_j_minus_1 = cd_j_minus_1[len(A):]
-    print("c^(j-1) shape: {}".format(c_j_minus_1.shape))
-    print("d^(j-1) shape: {}".format(d_j_minus_1.shape))
-
-    return c_j_minus_1, d_j_minus_1
+        return c_j_minus_1
 
 
 
+def _calc_analysis_matrices_from_semiorthogonal_pq(j):
+    PQ=_calc_synthesis_matrices_linear_b_splines(j)
+    #print("shapes: P: {}, Q: {}".format(P.shape, Q.shape))
 
-def get_synthesis_matrices_linear_b_splines(j):
+    #only for orthogonal
+        #A=P.T
+        #B=Q.T
+    #B-Splines W are semi-orthpogonal
+    #Build inverse
+    #\frac{A,B}=P|Q^-1
+    AB=np.linalg.inv(PQ)
+
+    #split up AB
+    #A,B=np.vsplit(AB,[2**(j-1)+1])
+    return AB
+
+
+def _calc_synthesis_matrices_linear_b_splines(j):
 
     norm=True
     #calc mat-sizes
@@ -252,7 +284,7 @@ def get_synthesis_matrices_linear_b_splines(j):
         Q[rows_of_Q-1,cols_of_Q-1]=-11.022704
 
         Q[1,0]=10.1041145
-        Q[rows_of_Q-1,cols_of_Q-1]=10.1041145
+        Q[rows_of_Q-2,cols_of_Q-1]=10.1041145
 
         Q[2,0]=-5.511352
         Q[rows_of_Q-3,cols_of_Q-1]=-5.511352
@@ -263,53 +295,10 @@ def get_synthesis_matrices_linear_b_splines(j):
         sqrt_2j_72=math.sqrt(2.0**j/72)
         if norm:Q=sqrt_2j_72*Q
 
-    return P,Q
-
-def calc_multi_res(j):
-    c_j=[]
-
-    #sythesis
-    P,Q=get_synthesis_matrices_linear_b_splines(j)
-    print("shapes: P: {}, Q: {}".format(P.shape, Q.shape))
-    #analysis
-    #only for orthogonal
-        #A=P.T
-        #B=Q.T
-    #B-Splines W are semi-orthpogonal
-    PQ=np.concatenate((P,Q),axis=1)
-    #print(PQ)
-    #\frac{A,B}=P|Q^-1
-    AB=np.linalg.inv(PQ)
-    #print(AB)
-
-    #split up AB
-    A,B=np.vsplit(AB,[2**(j-1)+1])
-    #print(A)
-    #print(B)
-
-    return A,B,P,Q, AB
-    #analysis (decomposotion)
-    # calc: cj-1=cj*Aj
-    # calc: dj-1=cj*Bj
-    c_j_minus_1=A*c_j
-    d_j_minus_1=B*c_j
+    PQ = np.concatenate((P, Q), axis=1)
+    return PQ
 
 
-
-
-    #easier: solve P|Q * \frac{c^(j-1), d^(j-1)}=c^j}
-    cj_1_dj_1=np.linalg.solve(PQ,c_j)
-    #cj_1_dj_1 now are values without using AB ;)
-    #TODO split into c and d minus 1
-
-    #RECURSIVLY
-
-
-    #synthesis (reconstruction)
-    c_j=P*c_j_minus_1+Q*d_j_minus_1
-
-
-    return
 
 
 if __name__ == "__main__":
