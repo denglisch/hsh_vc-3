@@ -124,7 +124,13 @@ def main():
     j=_calc_j_from_array_length(len(original_curve_points_array))
     cur_level=j
 
-    MRAGUI.build_plt(original_curve_points_array, get_new_points_to_draw_for_level, slider_max_level=j)
+    MRAGUI.build_plt(original_curve_points_array, get_new_points_to_draw_for_level, update_point_in_pointlist, slider_max_level=j)
+    return
+
+def update_point_in_pointlist(idx, xy):
+    global cur_points
+    #since we're working on one pointlist and subarrays are always at the beginning
+    cur_points[idx]=xy
     return
 
 def _calc_j_from_array_length(length):
@@ -137,10 +143,10 @@ def _calc_length_from_j(j):
 
 def get_new_points_to_draw_for_level(level):
     global original_curve_points_array, cur_points, cur_details
-    points_to_draw=calc_new_points(level)
+    points_to_draw=calc_new_points_and_return_to_draw(level)
     return points_to_draw
 
-def calc_new_points(level=0):
+def calc_new_points_and_return_to_draw(level=0):
     global cur_level, cur_points
     if cur_level==level:
         #nothing to do

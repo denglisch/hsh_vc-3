@@ -40,7 +40,7 @@ def render_points_array(ax, control_points_array=None, points_array=None):
                 ax.plot([from_p[0], to_p[0]], [from_p[1], to_p[1]], 'o', ms=2.0, ls='-', lw=1.0, color=c_sc)
     return
 
-def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, slider_max_level=10):
+def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, update_point_in_pointlist, slider_max_level=10):
     #prepare plot
     fig, ax = plt.subplots(figsize=[12, 12])
     #init vis
@@ -136,6 +136,7 @@ def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, sli
         # update yvals
         # print('motion x: {0}; y: {1}'.format(event.xdata,event.ydata))
         points_array[pind] = [event.xdata,event.ydata]
+        update_point_in_pointlist(pind, [event.xdata,event.ydata])
 
         # update curve via sliders and draw
         #update_vis(level)
