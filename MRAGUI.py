@@ -37,7 +37,7 @@ def render_points_array(ax, control_points_array=None, points_array=None):
             if i>0:
                 from_p=points_array[i-1]
                 to_p=p
-                ax.plot([from_p[0], to_p[0]], [from_p[1], to_p[1]], 'o', ms=2.0, ls='-', lw=1.0, color=c_sc)
+                ax.plot([from_p[0], to_p[0]], [from_p[1], to_p[1]], 'o', ms=0.0, ls='-', lw=1.0, color=c_sc)
     return
 
 def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, update_point_in_pointlist, slider_max_level=10):
@@ -50,7 +50,7 @@ def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, upd
     #Slider (widget example adapted from: https://riptutorial.com/matplotlib/example/23577/interactive-controls-with-matplotlib-widgets)
     #slider axes
     slider_ax = plt.axes([0.35, .03, 0.50, 0.02])
-    level_slider = Slider(slider_ax, "Level", 0, slider_max_level, valinit=level, valstep=0.1)
+    level_slider = Slider(slider_ax, "Level", 1.0, slider_max_level, valinit=level, valstep=0.1)
 
     points_array=original_curve_points_array
 
@@ -80,7 +80,7 @@ def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, upd
     def onclick(event):
         ix, iy = event.xdata, event.ydata
         print("[{}, {}],".format(ix,iy))
-    fig.canvas.mpl_connect('button_press_event', onclick)
+    #fig.canvas.mpl_connect('button_press_event', onclick)
 
     #from: https://stackoverflow.com/questions/50439506/dragging-points-in-matplotlib-interactive-plot
     pind = None  # active point

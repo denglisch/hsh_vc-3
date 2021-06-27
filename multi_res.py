@@ -149,29 +149,40 @@ def _calc_length_from_j(j):
     return 2**j+1
 
 def calc_new_points_and_return_to_draw(level):
-    return _calc_new_points_and_return_to_draw_fractional(level)
+    return _calc_new_points_and_return_to_draw_discrete(level)
+    #return _calc_new_points_and_return_to_draw_fractional(level)
 
 def _calc_new_points_and_return_to_draw_fractional(level):
     level_ceil=math.ceil(level)
     level_floor=math.floor(level)
     frac_level=level-level_floor
-    print(frac_level)
+    print(frac_level, level_ceil, level_floor)
     global FRAC_RES
     if frac_level<FRAC_RES:
         #do if it was an integer ;)
         return _calc_new_points_and_return_to_draw_discrete(level_floor)
 
-    print("frac level")
+    print("fractional-level from {} to {}".format(level_ceil, level_floor))
     #else calc fractional-level curve
     #first down to level.ceil
-    point_array_j=_calc_new_points_and_return_to_draw_discrete(level_ceil)
-    return point_array_j
+    point_array_j_plus_1=_calc_new_points_and_return_to_draw_discrete(level_ceil)
+    print("array length j:{}".format(len(point_array_j_plus_1)))
+
+    lenth_of_j_plus_1=int((1.0*frac_level)*len(point_array_j_plus_1))
+    point_array_j_plus_12=point_array_j_plus_1[:lenth_of_j_plus_1]
+    print("-until index:{}".format(lenth_of_j_plus_1))
 
     #than down to level.floor
-    point_array_j_plus_1=_calc_new_points_and_return_to_draw_discrete(level_floor)
+    point_array_j=_calc_new_points_and_return_to_draw_discrete(level_floor)
+    print("array length j+1:{}".format(len(point_array_j)))
 
-    point_array=(1-frac_level)*point_array_j+frac_level*point_array_j_plus_1
-    point_array=point_array_j_plus_1
+    lenth_of_j=int(frac_level*len(point_array_j))
+    point_array_j2=point_array_j[:lenth_of_j]
+    print(lenth_of_j, lenth_of_j_plus_1)
+    print("-until index:{}".format(lenth_of_j))
+
+    point_array=np.concatenate((point_array_j_plus_12,point_array_j2),axis=0)
+    print(point_array.shape, point_array_j2.shape, point_array_j_plus_12.shape)
 
     return point_array
 
@@ -190,10 +201,16 @@ def _calc_new_points_and_return_to_draw_discrete(level):
     j_actual=int(cur_level)
     cur_level=level
 
+    if j_target==0:
+        j_target=1
+        cur_level=1
+
     if j_target>j_actual:
         points_to_return=np.array([])
+        print("-synthesis from {} up to j: {}".format(j_actual, j_target))
         while j_target>j_actual:
             j_actual+=1
+            print("--synthesis up to j: {}".format(j_actual))
             #make synthesis
             PQ=_calc_synthesis_matrices_linear_b_splines(j_actual)
             cd_length = _calc_length_from_j(j_actual)
@@ -209,14 +226,14 @@ def _calc_new_points_and_return_to_draw_discrete(level):
 
     if j_target<j_actual:
         points_to_return=np.array([])
+        print("-analysis from {} down to j: {}".format(j_actual, j_target))
         while j_target<j_actual:
             #make analysis
-            #TODO: Do until target is achieved
+            print("--analysis down to j: {}".format(j_actual-1))
             AB=_calc_analysis_matrices_from_semiorthogonal_pq(j_actual)
             c_length=_calc_length_from_j(j_actual)
-            print("j: {}".format(j_actual))
             sub_points=cur_points[:c_length]
-            print("subarray shape: {}".format(sub_points.shape))
+            #print("subarray shape: {}".format(sub_points.shape))
 
             cd_j_minus_1 = np.dot(AB, sub_points)
             #split into c and d
@@ -230,7 +247,9 @@ def _calc_new_points_and_return_to_draw_discrete(level):
             #print("d^(j-1) shape: {}".format(d_j_minus_1.shape))
 
             cur_points[:c_length]=cd_j_minus_1
-            points_to_return=cd_j_minus_1
+
+            c_minus_length = _calc_length_from_j(j_actual-1)
+            points_to_return=cd_j_minus_1[:c_minus_length]
 
             # analysis (decomposotion)
             # calc: cj-1=cj*Aj
@@ -280,7 +299,7 @@ def _calc_synthesis_matrices_linear_b_splines(j):
     P = np.zeros((rows_of_P, cols_of_P))
     Q = np.zeros((rows_of_Q, cols_of_Q))
 
-    print("shape P: {}, Q: {}".format(P.shape, Q.shape))
+    #print("shape P: {}, Q: {}".format(P.shape, Q.shape))
 
     #P is always the same
     for col in range(0, cols_of_P):
