@@ -23,17 +23,17 @@ def render_points_array(ax, control_points_array=None, points_array=None):
     if control_points_array is not None:
         for i, cp in enumerate(control_points_array):
             disc = "c{}".format(i)
-            ax.add_patch(plt.Circle(cp, radius=r_cp, fc=c_cp, fill=True))
+            #ax.add_patch(plt.Circle(cp, radius=r_cp, fc=c_cp, fill=True))
             #ax.annotate(disc, cp + ann_offset)
 
             if i > 0:
                 from_p = control_points_array[i - 1]
                 to_p = cp
-                ax.plot([from_p[0], to_p[0]], [from_p[1], to_p[1]], 'o', ms=2.0, ls='-', lw=1.0, color=c_cc)
+                ax.plot([from_p[0], to_p[0]], [from_p[1], to_p[1]], 'o', ms=0.0, ls='--', lw=1.0, color=c_cc)
 
     if points_array is not None:
         for i,p in enumerate(points_array):
-            ax.add_patch(plt.Circle(p, radius=r_p, fc=c_p, fill=False))
+            #ax.add_patch(plt.Circle(p, radius=r_p, fc=c_p, fill=False))
             if i>0:
                 from_p=points_array[i-1]
                 to_p=p
@@ -72,9 +72,22 @@ def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, upd
         render_points_array(ax, original_curve_points_array, points_array)
         fig.canvas.draw_idle()
     update_vis(level)
-
     # call update function on slider value change
     level_slider.on_changed(update_vis)
+
+    def on_key_press(event):
+        #print('press', event.key)
+        if event.key == None:
+            return
+        nonlocal level_slider
+        if event.key == 'left':
+            if level_slider.val>1.0:
+                level_slider.set_val(level_slider.val-0.1)
+        if event.key == 'right':
+            if level_slider.val<slider_max_level:
+                level_slider.set_val(level_slider.val+0.1)
+        #fig.canvas.draw()
+    fig.canvas.mpl_connect('key_press_event', on_key_press)
 
     # this was to define points for initial curve ;)
     def onclick(event):
