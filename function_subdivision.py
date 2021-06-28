@@ -35,7 +35,8 @@ def get_function_values(steps, function=function1, f_param=0):
 
 def render_subdivision_step_update(function_points_array, control_points_array, points_array, step, ax):
     ax.clear()
-    ax.axis([0.0, 1.0, 0.0, 1.0])
+    #ax.axis([0.0, 1.0, 0.0, 1.0])
+    ax.axis([0.0, 1.0, -0.5, 1.5])
 
     #x = np.arange(0.0, 1.2, 0.01)
     #function = x ** 7 + 0.3
@@ -130,10 +131,11 @@ def render():
     # from: https://matplotlib.org/2.0.2/examples/widgets/radio_buttons.html
     #axcolor = 'lightgoldenrodyellow'
     radio_ax = plt.axes([0.01, 0.03, 0.1, 0.15])#, facecolor=axcolor)
-    radio = RadioButtons(radio_ax, ('uniform', 'nonuniform'))
+    radio = RadioButtons(radio_ax, ('uniform\ncub. B-Spline','uniform\nDaubechie','nonuniform\ncub. B-Spline'))
     def select_scheme(label):
-        hzdict = {'uniform': subdivision_b_spline_cubic_uniform,
-                  'nonuniform': subdivision_b_spline_cubic_nonuniform}
+        hzdict = {'uniform\ncub. B-Spline': subdivision_b_spline_cubic_uniform,
+                  'nonuniform\ncub. B-Spline': subdivision_b_spline_cubic_nonuniform,
+                  'uniform\nDaubechie': subdivision_daubechie_uniform}
         nonlocal subdivision_scheme_function
         subdivision_scheme_function = hzdict[label]
         update_vis(cur_step)
@@ -238,6 +240,16 @@ def subdivision_b_spline_cubic_uniform(points_array):
     #print(mat_r)
     points_array[:,1]=np.dot(mat_r,cp_points_array[:,1])
     return points_array
+
+def subdivision_daubechie_uniform(points_array):
+    cp_points_array = np.copy(points_array)
+    one_plus_sqrt3=1.0+math.sqrt(3)
+    one_minus_sqrt3=1.0-math.sqrt(3)
+    for i, p in enumerate(points_array):
+        if i<len(points_array)-1:
+            next_p = points_array[i + 1]
+            cp_points_array[i] = 0.5 * (one_plus_sqrt3*p + one_minus_sqrt3*next_p)
+    return cp_points_array
 
 def subdivision_b_spline_cubic_nonuniform(points_array):
     cp_points_array=points_array
