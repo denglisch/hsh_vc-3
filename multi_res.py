@@ -78,10 +78,26 @@ def _calc_new_points_and_return_to_draw_fractional(level):
 
 def _interpolate_curves(point_array_j,point_array_j_plus_1, frac_level):
 
-    doubled_j=np.repeat(point_array_j,2,axis=0)
-    #pop last element
-    doubled_j=doubled_j[:-1]
-    print("doubled j: {}".format(doubled_j.shape))
+    doubled_j = np.repeat(point_array_j, 2, axis=0)
+
+    split_by_doubling=False
+    split_by_averaging=True
+
+    if split_by_doubling:
+        #pop last element
+        doubled_j=doubled_j[:-1]
+        print("doubled j: {}".format(doubled_j.shape))
+
+    if split_by_averaging:
+        #TODO increase this step
+        doubled_j=np.empty(point_array_j_plus_1.shape)
+        doubled_j_cp=np.repeat(point_array_j,2,axis=0)
+        for i in range(0,len(doubled_j-1)):
+            p=doubled_j_cp[i]
+            next_p = doubled_j_cp[i + 1]
+            doubled_j[i]=(0.5*(p+next_p))
+        #doubled_j = doubled_j[:-1]
+        print("doubled j: {}".format(doubled_j.shape))
 
     print("#j: {} #j+1: {}".format(point_array_j.shape,point_array_j_plus_1.shape))
 
