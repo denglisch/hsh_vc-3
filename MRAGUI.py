@@ -41,7 +41,10 @@ def render_points_array(ax, control_points_array=None, points_array=None, discre
                 ax.plot([from_p[0], to_p[0]], [from_p[1], to_p[1]], 'o', ms=0.0, ls='-', lw=1.0, color=c_sc)
     return
 
-def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, update_point_in_pointlist, slider_max_level=10):
+def build_plt(original_curve_points_array, get_new_points_to_draw_for_level,
+              update_point_in_pointlist,
+              set_pumping_method_by_doubling,
+              slider_max_level=10):
     #prepare plot
     fig, ax = plt.subplots(figsize=[12, 12])
     #init vis
@@ -75,7 +78,7 @@ def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, upd
     # call update function on slider value change
     level_slider.on_changed(update_vis)
 
-    radio_ax = plt.axes([0.01, 0.03, 0.1, 0.1])  # , facecolor=axcolor)
+    radio_ax = plt.axes([0.01, 0.13, 0.1, 0.1])  # , facecolor=axcolor)
     radio = RadioButtons(radio_ax, ('discrete', 'fractional-\nlevel'),1)
 
     def set_discrete(label):
@@ -90,6 +93,17 @@ def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, upd
             level_slider.valstep=0.1
             update_vis(level)
     radio.on_clicked(set_discrete)
+
+    radio_ax2 = plt.axes([0.01, 0.03, 0.1, 0.1])
+    radio2 = RadioButtons(radio_ax2, ('frac. by\ndoubling', 'frac. by\naveraging'),1)
+    def set_discrete(label):
+        if label=='frac. by\ndoubling':
+            set_pumping_method_by_doubling(True)
+        else:
+            set_pumping_method_by_doubling(False)
+        if not discrete:
+            update_vis(level)
+    radio2.on_clicked(set_discrete)
 
     def on_key_press(event):
         #print('press', event.key)

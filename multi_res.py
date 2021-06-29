@@ -28,7 +28,11 @@ def main():
     j=_calc_j_from_array_length(len(original_curve_points_array))
     cur_level=j
 
-    MRAGUI.build_plt(original_curve_points_array, get_new_points_to_draw_for_level, update_point_in_pointlist, slider_max_level=j)
+    MRAGUI.build_plt(original_curve_points_array=original_curve_points_array,
+                     get_new_points_to_draw_for_level=get_new_points_to_draw_for_level,
+                     update_point_in_pointlist=update_point_in_pointlist,
+                     set_pumping_method_by_doubling=set_pumping_method_by_doubling,
+                     slider_max_level=j)
     return
 
 #GUI
@@ -41,6 +45,12 @@ def update_point_in_pointlist(idx, xy):
     global cur_points
     #since we're working on one pointlist and subarrays are always at the beginning
     cur_points[idx]=xy
+    return
+#GUI
+def set_pumping_method_by_doubling(by_doubling):
+    global frac_pumping_by_doubling, frac_pumping_by_averaging
+    frac_pumping_by_doubling=by_doubling
+    frac_pumping_by_averaging=not by_doubling
     return
 
 def _calc_j_from_array_length(length):
