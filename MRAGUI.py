@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider
+from matplotlib.widgets import Slider, CheckButtons
 from matplotlib.widgets import RadioButtons
 import numpy as np
 import math
 
 
-def render_points_array(ax, control_points_array=None, points_array=None):
+def render_points_array(ax, control_points_array=None, points_array=None, discrete=False):
     ax.clear()
     ax.axis([0.0, 1.0, 0.0, 1.0])
 
@@ -33,7 +33,8 @@ def render_points_array(ax, control_points_array=None, points_array=None):
 
     if points_array is not None:
         for i,p in enumerate(points_array):
-            ax.add_patch(plt.Circle(p, radius=r_p, fc=c_p, fill=False))
+            if discrete:
+                ax.add_patch(plt.Circle(p, radius=r_p, fc=c_p, fill=False))
             if i>0:
                 from_p=points_array[i-1]
                 to_p=p
@@ -53,15 +54,14 @@ def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, upd
     level_slider = Slider(slider_ax, "Level", 1.0, slider_max_level, valinit=level, valstep=0.1)
 
     points_array=original_curve_points_array
+    discrete=False
 
     #defined locally to have all values here
     def update_vis(val):
         #get selected step
         nonlocal level,points_array
+
         level=val
-
-
-        #points_array,details=calc_new_points(points_array, level)
 
         points_array=get_new_points_to_draw_for_level(level)
         #print(points_array)
@@ -69,11 +69,27 @@ def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, upd
         #print("Replot at Level {} on {} control points with {} total points".format(step, count_cp, count_p))
 
         #rebuild vis on axes
-        render_points_array(ax, original_curve_points_array, points_array)
+        render_points_array(ax, original_curve_points_array, points_array, discrete)
         fig.canvas.draw_idle()
     update_vis(level)
     # call update function on slider value change
     level_slider.on_changed(update_vis)
+
+    radio_ax = plt.axes([0.01, 0.03, 0.1, 0.1])  # , facecolor=axcolor)
+    radio = RadioButtons(radio_ax, ('discrete', 'fractional-\nlevel'),1)
+
+    def set_discrete(label):
+        nonlocal discrete
+        nonlocal level_slider
+        if label=='discrete':
+            discrete=True
+            level_slider.set_val(round(level_slider.val))
+            level_slider.valstep=1.0
+        else:
+            discrete=False
+            level_slider.valstep=0.1
+            update_vis(level)
+    radio.on_clicked(set_discrete)
 
     def on_key_press(event):
         #print('press', event.key)
@@ -82,10 +98,10 @@ def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, upd
         nonlocal level_slider
         if event.key == 'left':
             if level_slider.val>1.0:
-                level_slider.set_val(level_slider.val-0.1)
+                level_slider.set_val(level_slider.val-level_slider.valstep)
         if event.key == 'right':
             if level_slider.val<slider_max_level:
-                level_slider.set_val(level_slider.val+0.1)
+                level_slider.set_val(level_slider.val+level_slider.valstep)
         #fig.canvas.draw()
     fig.canvas.mpl_connect('key_press_event', on_key_press)
 
@@ -100,6 +116,8 @@ def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, upd
     epsilon = 5  # max pixel distance
     def button_press_callback(event):
         'whenever a mouse button is pressed'
+        if not discrete:
+            return
         nonlocal pind
         if event.inaxes is None:
             return
@@ -139,6 +157,8 @@ def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, upd
 
     def motion_notify_callback(event):
         'on mouse movement'
+        if not discrete:
+            return
         nonlocal points_array
         if pind is None:
             return
@@ -153,7 +173,7 @@ def build_plt(original_curve_points_array, get_new_points_to_draw_for_level, upd
 
         # update curve via sliders and draw
         #update_vis(level)
-        render_points_array(ax, original_curve_points_array, points_array)
+        render_points_array(ax, original_curve_points_array, points_array, discrete)
         #sliders[pind].set_val(yvals[pind])
         fig.canvas.draw_idle()
 

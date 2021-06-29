@@ -68,6 +68,7 @@ first_try=np.array([
         [0.3075268817204301, 0.8766233766233766],
     ])
 
+#extracted from paper
 hello=np.array([
         [0.001, 0.305],
         [0.018, 0.297],

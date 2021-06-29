@@ -14,6 +14,9 @@ original_curve_points_array=np.array([])
 cur_points=np.array([])
 cur_level=0
 
+frac_pumping_by_doubling = True
+frac_pumping_by_averaging = not frac_pumping_by_doubling
+
 def main():
     global original_curve_points_array, cur_points, cur_level
 
@@ -22,7 +25,6 @@ def main():
     original_curve_points_array=curves_data.hello
 
     cur_points=np.copy(original_curve_points_array)
-
     j=_calc_j_from_array_length(len(original_curve_points_array))
     cur_level=j
 
@@ -79,17 +81,15 @@ def _calc_new_points_and_return_to_draw_fractional(level):
 def _interpolate_curves(point_array_j,point_array_j_plus_1, frac_level):
 
     doubled_j = np.repeat(point_array_j, 2, axis=0)
+    global frac_pumping_by_doubling, frac_pumping_by_averaging
 
-    split_by_doubling=False
-    split_by_averaging=True
-
-    if split_by_doubling:
+    if frac_pumping_by_doubling:
         #pop last element
         doubled_j=doubled_j[:-1]
         print("doubled j: {}".format(doubled_j.shape))
 
-    if split_by_averaging:
-        #TODO increase this step
+    if frac_pumping_by_averaging:
+        #TODO imrpove this step
         doubled_j=np.empty(point_array_j_plus_1.shape)
         doubled_j_cp=np.repeat(point_array_j,2,axis=0)
         for i in range(0,len(doubled_j-1)):
