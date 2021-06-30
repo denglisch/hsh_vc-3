@@ -10,6 +10,8 @@ Note: All pictures processed here have to have a shape of 2<sup>n</sup> x 2<sup>
 
 Implementation for exercises Images you'll find in `images.py` (resp. `Haar.py`). 
 Toggle booleans in `main()` for each subtask.
+Commented lines are proposals for different usages of the stated functions.
+
 Three images are provided in list `image_pathes` choose index from [0,2].
 
 1. See file `Haar.py`.

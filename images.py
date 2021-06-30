@@ -14,7 +14,7 @@ def main():
                   "img/Mona_Lisa.png"]
 
     # 1 & 2 Haar trafo
-    if False:
+    if True:
         Haar.kd_test_decomp_recon_on_1d_array()
         #decomp_and_recon(image_pathes[1], color=True, normalized=True, standard=False)
         decomp_and_recon_with_steps(image_pathes[1], color=False, normalized=True, standard=False, crop_min_max=False)
@@ -35,7 +35,7 @@ def main():
         save_as_image(image_values, outfile)
 
     # 4 compression yuv
-    if True:
+    if False:
         infile=image_pathes[0]
         image_values=load_image_as_ndarray_float(infile, gray=False, yuv=True)
         print("compression")
