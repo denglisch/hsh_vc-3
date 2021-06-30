@@ -341,7 +341,7 @@ def decomposition_2d_with_steps(image_values, normalized=True, standard=True, im
     return image_values
 
 def decomposition_2d(image_values, normalized=True, standard=True):
-    # Haar decomposition of a 2D array inplace
+    # Haar decomposition of a 2D array
     #print(image_values.shape)
     if standard:
         for i in range(0, image_values.shape[0]):
@@ -366,6 +366,11 @@ def decomposition_2d(image_values, normalized=True, standard=True):
         return image_values
 
 def reconstruction_2d_with_steps(image_values, normalized=True, standard=True, img_list=None, crop_min_max=True):
+    """
+    Performing Haar reconstruction on gray or yuv image values
+    Saving all intermediate steps as rgb images in img_list
+    :return: reconstructed image_values
+    """
     # Only on squared images
 
     #color_image?
@@ -453,7 +458,7 @@ def reconstruction_2d_with_steps(image_values, normalized=True, standard=True, i
 
 
 def reconstruction_2d(image_values, normalized=True, standard=True):
-    # Haar reconstruction of a 2D array inplace
+    # Haar reconstruction of a 2D array
     #print(image_values.shape)
 
     if standard:
@@ -485,7 +490,7 @@ def read_min_dim(image_values):
         return image_values.shape[1]
 
 def _decomposition(coefficients, normalized=True):
-    # Haar decomposition of array inplace
+    # Haar decomposition of 1D array
 
     #normalize
     if normalized:
@@ -504,7 +509,7 @@ def _decomposition(coefficients, normalized=True):
     return coefficients
 
 def _decomposition_step(coefficients, until, normalized=True):
-    # One step of Haar decomposition of array inplace
+    # One step of Haar decomposition of 1D array
 
     # apply changes on copy first
     copy=np.copy(coefficients)
@@ -530,7 +535,7 @@ def _decomposition_step(coefficients, until, normalized=True):
     return coefficients
 
 def _reconstruction(coefficients, normalized=True):
-    # Haar reconstruction of array inplace
+    # Haar reconstruction of 1D array
 
     # start with 2 and go up to whole size
     until = 2
@@ -547,7 +552,7 @@ def _reconstruction(coefficients, normalized=True):
     return coefficients
 
 def _reconstruction_step(coefficients, until, normalized=True):
-    # One step of Haar reconstruction of array inplace
+    # One step of Haar reconstruction of 1D array
 
     # apply changes on copy first
     copy = np.copy(coefficients)
