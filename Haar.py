@@ -17,38 +17,11 @@ def kd_test_decomp_recon_on_1d_array():
     return
 
 
-def kd_test_decomp_recon_on_image():
-    # load lenna as 2d grayscale array
-    image_values = np.array(Image.open('img/Lenna.png').convert('L'))
-
-    # make sure, values can be negative (default uint)
-    image_values=image_values.astype(np.float64)
-
-    # std decomp
-    print("decomp")
-    normalized=True
-    std=True
-
-    image_values=decomposition_2d(image_values, normalized=normalized, standard=std)
-
-    decomp_image_values=prepare_decomp_image_for_render(image_values, normalized, std)
-
-    im = Image.fromarray(decomp_image_values)
-    im.save("img/Lenna_DECOMP.png")
-
-    #image_values=np.subtract(image_values, 100.0)
-
-    # std recon
-    print("recon")
-    image_values=reconstruction_2d(image_values, normalized=normalized, standard=std)
-
-    # save img
-    image_values=image_values.astype(np.uint8)
-    im = Image.fromarray(image_values)
-    im.save("img/Lenna_RECON.png")
-    return
-
 def prepare_decomp_image_for_render(image_values, normalized, std, crop_min_max=True, decomp_img=True):
+    """
+    Preparing image values np.array for renering (calculating back normalization, cropping extrema)
+    :return: corrected image values as np.array
+    """
     color=True if len(image_values.shape)==3 else False
     if color:
         until=3
@@ -76,7 +49,7 @@ def prepare_decomp_image_for_render(image_values, normalized, std, crop_min_max=
                     decomp_image_values = np.multiply(decomp_image_values, sqrt2)
                 extrem *= sqrt2
             if not std:
-                min_dim = _read_min_dim(image_values)
+                min_dim = read_min_dim(image_values)
                 if color:
                     decomp_image_values[:,:,i] = np.multiply(decomp_image_values[:,:,i], min_dim)
                 else:
@@ -102,83 +75,15 @@ def prepare_decomp_image_for_render(image_values, normalized, std, crop_min_max=
     return decomp_image_values
 
 
-def kd_test_compression_on_image():
-    # load lenna as 2d grayscale array
-    image_values = np.array(Image.open('img/Lenna.png').convert('L'))
-
-    # make sure, values can be negative (default uint)
-    image_values=image_values.astype(np.float64)
-
-    print("compression")
-    #image_values=compression(image_values, squared_error_stollnitz=20000)
-    #image_values=compression_2d(image_values, number_of_coeffs_left=10000)
-    image_values=compression_2d(image_values, number_of_coeffs_left_exact=10000)
-    #image_values=compression(image_values, squared_error=20000000)
-
-    # save img
-    image_values=image_values.astype(np.uint8)
-    im = Image.fromarray(image_values)
-    im.save("img/Lenna_COMP.png")
-    return
-
-
-def kd_test_color_compression_on_yuv_image():
-    # load lenna as 2d RGB array
-    image_values = np.array(Image.open('img/Lenna_1024.jpg'))
-    print(image_values.shape)
-    print(image_values[0,0])
-
-    # convert to YUV
-    image_values=util.RGB2YUV(image_values)
-    print(image_values[0,0])
-
-    # decomp and recon is done in compression function
-    # compress luminance (Y) with one error
-    compression_2d_yuv(image_values, y_number_of_coeffs_left_exact=100, uv_number_of_coeffs_left_exact=50)
-    #compression_2d_yuv(image_values, y_number_of_coeffs_left=100, uv_number_of_coeffs_left=50)
-
-    # convert to RGB
-    image_values=util.YUV2RGB(image_values)
-
-    # save img
-    image_values=image_values.astype(np.uint8)
-    Image.fromarray(image_values).save("img/Lenna_1024_YUV_COMP.png")
-    return
-
-def kd_test_preprocessing_on_gray():
-    # load lenna as 2d grayscale array
-    image_values = np.array(Image.open('img/Lenna_WRONG.png').convert('L'))
-
-    # make sure, values can be negative (default uint)
-    image_values = image_values.astype(np.float64)
-
-    print("compression")
-    # image_values=_compression_2d_only_decomp(image_values, squared_error_stollnitz=20000)
-    # image_values=_compression_2d_only_decomp(image_values, number_of_coeffs_left=10000)
-    image_values = _compression_2d_only_decomp(image_values, number_of_coeffs_left_exact=60)
-    # image_values=_compression_2d_only_decomp(image_values, squared_error=20000000)
-
-    print("- quantization")
-    #image_values[image_values<0]=-1
-    #image_values[image_values>=0]=1
-
-    print("- reconstruction")
-    image_values=reconstruction_2d(image_values, normalized=True, standard=True)
-
-    # save img
-    image_values=image_values.astype(np.uint8)
-
-    image_values[image_values < 127] = 0
-    image_values[image_values >= 127] = 255
-
-    Image.fromarray(image_values).save("img/Lenna_PRE.png")
-    return
-
 def compression_2d_yuv(image_values,
                        y_squared_error=None, y_squared_error_stollnitz=None,
                        y_number_of_coeffs_left=None, y_number_of_coeffs_left_exact=None,
                        uv_squared_error=None, uv_squared_error_stollnitz=None,
                        uv_number_of_coeffs_left=None, uv_number_of_coeffs_left_exact=None):
+    """
+    Compression of yuv image. Performs compression for each color channel.
+    Parameters for y and uv are splitted up. Channel u and v will be computed the same way. 
+    """
     print("compress Y")
     image_values[:,:,0]=compression_2d(image_values[:, :, 0],
                                        squared_error=y_squared_error,
@@ -199,13 +104,22 @@ def compression_2d_yuv(image_values,
                                        number_of_coeffs_left_exact=uv_number_of_coeffs_left_exact,
                                        number_of_coeffs_left=uv_number_of_coeffs_left)
 
-    return
+    return image_values
 
-def _compression_2d_only_decomp(image_values,
-                   squared_error=None,
-                   squared_error_stollnitz=None,
-                   number_of_coeffs_left_exact=None,
-                   number_of_coeffs_left=None):
+def compression_2d_only_decomp(image_values,
+                               squared_error=None,
+                               squared_error_stollnitz=None,
+                               number_of_coeffs_left_exact=None,
+                               number_of_coeffs_left=None):
+    """
+    Decomposition step with compression.
+    :param image_values: np.array of image values
+    :param squared_error: sum of all truncated values will be below this value. Implementing the binar search approach from lecture.
+    :param squared_error_stollnitz: sum of all truncated values will be below this value. Finding threshold by starting at minimum and doubling each step until squared error is reached.
+    :param number_of_coeffs_left_exact: Exact this amount of coefficients will stay. Searching for the n-th greates element and truncating all below.
+    :param number_of_coeffs_left: Doubling threshold until sum of not truncated coefficients is reached.
+    :return: compressed but still decomposed image
+    """
     # normalized 2d decomp.
     print("- decomposition")
     image_values = decomposition_2d(image_values, normalized=True, standard=True)
@@ -322,14 +236,16 @@ def compression_2d(image_values,
                    squared_error_stollnitz=None,
                    number_of_coeffs_left_exact=None,
                    number_of_coeffs_left=None):
+    """
+    Complete compression step for one channel (decomposition, compression, reconstruction)
+    Params as stated in "compression_2d_only_decomp"
+    :return: compressed image values of one channel
+    """
     # return compressed image_values
-    image_values=_compression_2d_only_decomp(image_values,squared_error,squared_error_stollnitz,number_of_coeffs_left_exact,number_of_coeffs_left)
+    image_values=compression_2d_only_decomp(image_values, squared_error, squared_error_stollnitz, number_of_coeffs_left_exact, number_of_coeffs_left)
     # recon image
     print("- reconstruction")
     image_values=reconstruction_2d(image_values, normalized=True, standard=True)
-
-    # after return
-    # save image
     return image_values
 
 def truncate_elements_abs_below_threshold(image_values, threshold):
@@ -341,6 +257,11 @@ def truncate_elements_abs_below_threshold(image_values, threshold):
     return image_values, truncated
 
 def decomposition_2d_with_steps(image_values, normalized=True, standard=True, img_list=None, crop_min_max=True):
+    """
+    Performing Haar decomposition on gray or yuv image values
+    Saving all intermediate steps as rgb images in img_list
+    :return: decomposed image_values
+    """
     # Only on squared images
 
     #color_image?
@@ -354,7 +275,7 @@ def decomposition_2d_with_steps(image_values, normalized=True, standard=True, im
             np.divide(image_values, sqrt2)
 
         #start with whole array
-        until=_read_min_dim(image_values)
+        until=read_min_dim(image_values)
         while until>=2:
             for i in range(0, image_values.shape[0]):
                 if color:
@@ -370,7 +291,7 @@ def decomposition_2d_with_steps(image_values, normalized=True, standard=True, im
         img_list.append(None)
 
         # start with whole array
-        until = _read_min_dim(image_values)
+        until = read_min_dim(image_values)
         while until >= 2:
             for i in range(0, image_values.shape[1]):
                 if color:
@@ -385,7 +306,7 @@ def decomposition_2d_with_steps(image_values, normalized=True, standard=True, im
 
     #non-standard
     else:
-        mindim = _read_min_dim(image_values)
+        mindim = read_min_dim(image_values)
         log=math.ceil(math.log(mindim,2))
         #print(log)
         image_values = np.divide(image_values, mindim)
@@ -433,7 +354,7 @@ def decomposition_2d(image_values, normalized=True, standard=True):
 
     #nonstandard
     else:
-        mindim=_read_min_dim(image_values)
+        mindim=read_min_dim(image_values)
         image_values=np.divide(image_values,mindim)
         until=mindim
         while until>=2:
@@ -457,7 +378,7 @@ def reconstruction_2d_with_steps(image_values, normalized=True, standard=True, i
         #    # sqrt2=1
         #    np.divide(image_values, sqrt2)
 
-        mindim = _read_min_dim(image_values)
+        mindim = read_min_dim(image_values)
 
         # start with whole array
         until = 2
@@ -495,7 +416,7 @@ def reconstruction_2d_with_steps(image_values, normalized=True, standard=True, i
 
     #non-standard
     else:
-        mindim = _read_min_dim(image_values)
+        mindim = read_min_dim(image_values)
         log=math.ceil(math.log(mindim,2))
         #print(log)
         until = 2
@@ -545,7 +466,7 @@ def reconstruction_2d(image_values, normalized=True, standard=True):
 
     #nonstandard
     else:
-        mindim=_read_min_dim(image_values)
+        mindim=read_min_dim(image_values)
         until=2
         while(until<=mindim):
             for i in range(0, int(until)):
@@ -557,7 +478,7 @@ def reconstruction_2d(image_values, normalized=True, standard=True):
         return image_values
 
 
-def _read_min_dim(image_values):
+def read_min_dim(image_values):
     if image_values.shape[0] < image_values.shape[1]:
         return image_values.shape[0]
     else:

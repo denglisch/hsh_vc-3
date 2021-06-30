@@ -13,7 +13,7 @@ def main():
     return
 
 def function1(x,x0=0):
-    return 10*x**7+0.3
+    return (x-0.5)**2*10#10*x**7+0.3
 def function2(x,x0=0):
     return np.sin(x*10)*0.5+0.5
 def function3(x,x0=0):
@@ -30,7 +30,7 @@ def get_function_values(steps, function=function1, f_param=0):
     x=np.arange(from_v,stop,step)
     function_values=function(x, f_param)
     fp_array = np.vstack((x, function_values)).T
-    print(fp_array)
+    #print(fp_array)
     return fp_array
 
 def render_subdivision_step_update(function_points_array, control_points_array, points_array, step, ax):
