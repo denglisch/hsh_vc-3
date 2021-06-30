@@ -1,3 +1,6 @@
+# Visual Computing: Wavelets for Computer Graphics
+# team01
+
 import numpy as np
 
 # from: https://gist.github.com/Quasimondo/c3590226c924a06b276d606f4f189639

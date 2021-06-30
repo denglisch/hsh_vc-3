@@ -1,8 +1,10 @@
+# Visual Computing: Wavelets for Computer Graphics
+# team01
+
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider, CheckButtons
+from matplotlib.widgets import Slider
 from matplotlib.widgets import RadioButtons
 import numpy as np
-import math
 
 
 def render_points_array(ax, control_points_array=None, points_array=None, discrete=False):

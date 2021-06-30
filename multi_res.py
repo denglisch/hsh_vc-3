@@ -1,33 +1,44 @@
-import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider
-from matplotlib.widgets import RadioButtons
+# Visual Computing: Wavelets for Computer Graphics
+# team01
+
 import numpy as np
 import math
 import MRAGUI
 import curves_data
 
+#resolution of control-function (rendered dashed line)
 FUNCTION_DEPTH=50
+#resolution of control points (for calculation)
 CP_DEPTH=5
+#steps for fractional-level (and slider)
 FRAC_RES=0.1
 
+#original control points (never change, for comparison)
 original_curve_points_array=np.array([])
+#current altered point list
 cur_points=np.array([])
+#current res-level
 cur_level=0
 
+#kind of doubling algo (doubling or averaging)
 frac_pumping_by_doubling = True
 frac_pumping_by_averaging = not frac_pumping_by_doubling
 
 def main():
     global original_curve_points_array, cur_points, cur_level
 
+    #init curve
     original_curve_points_array=curves_data.first_try
     original_curve_points_array=curves_data.fuzzy_line
-    original_curve_points_array=curves_data.hello
+    #original_curve_points_array=curves_data.hello
 
+    #copy control curve
     cur_points=np.copy(original_curve_points_array)
+    #init level from point-list
     j=_calc_j_from_array_length(len(original_curve_points_array))
     cur_level=j
 
+    #build GUI with functions
     MRAGUI.build_plt(original_curve_points_array=original_curve_points_array,
                      get_new_points_to_draw_for_level=get_new_points_to_draw_for_level,
                      update_point_in_pointlist=update_point_in_pointlist,
@@ -37,11 +48,18 @@ def main():
 
 #GUI
 def get_new_points_to_draw_for_level(level):
+    """
+    Update point list for selected level
+    :return: pointlist for that level
+    """
     global original_curve_points_array, cur_points, cur_details
-    points_to_draw=calc_new_points_and_return_to_draw(level)
+    points_to_draw=_calc_new_points_and_return_to_draw_fractional(level)
     return points_to_draw
 #GUI
 def update_point_in_pointlist(idx, xy):
+    """
+    Alter "moved" point at index idx with new value xy
+    """
     global cur_points
     #since we're working on one pointlist and subarrays are always at the beginning
     cur_points[idx]=xy
@@ -61,11 +79,11 @@ def _calc_length_from_j(j):
     #len(c_j)=m=2^j+1
     return 2**j+1
 
-def calc_new_points_and_return_to_draw(level):
-    #return _calc_new_points_and_return_to_draw_discrete(level)
-    return _calc_new_points_and_return_to_draw_fractional(level)
-
 def _calc_new_points_and_return_to_draw_fractional(level):
+    """
+    Calculates new points for given fractional-level.
+    If no fraction is given, discrete calulation will be performed.
+    """
     level_ceil=math.ceil(level)
     level_floor=math.floor(level)
     frac_level=level-level_floor
@@ -79,17 +97,19 @@ def _calc_new_points_and_return_to_draw_fractional(level):
     #else calc fractional-level curve
     print("fractional-level from {} to {} with µ={}".format(level_floor,level_ceil,frac_level))
     #first down to level.ceil (if come from high j)
-    #print("-array length j:{}".format(len(point_array_j_plus_1)))
     point_array_j_plus_1=np.copy(_calc_new_points_and_return_to_draw_discrete(level_ceil))
     #than down to level.floor
     point_array_j=np.copy(_calc_new_points_and_return_to_draw_discrete(level_floor))
-    #print("-array length j+1:{}".format(len(point_array_j)))
 
     point_array=_interpolate_curves(point_array_j,point_array_j_plus_1,frac_level)
     return point_array
 
 def _interpolate_curves(point_array_j,point_array_j_plus_1, frac_level):
-
+    """
+    Returns an interplation of two point arrays of different lenght.
+    First one will be doubled (from n to 2*n-1) until they fit in shape.
+    Doubling algo is chosen by globel booleans frac_pumping_by_doubling or frac_pumping_by_averaging
+    """
     doubled_j = np.repeat(point_array_j, 2, axis=0)
     global frac_pumping_by_doubling, frac_pumping_by_averaging
 
@@ -117,6 +137,10 @@ def _interpolate_curves(point_array_j,point_array_j_plus_1, frac_level):
     return point_array
 
 def _calc_new_points_and_return_to_draw_discrete(level):
+    """
+    Calculates new points acc. to level for rendering
+    If abs(target level - currrent level)>1 it will loop stepwise until target level is reached.
+    """
     global cur_level, cur_points
     #make sure, it's an integer
     level=int(level)
@@ -179,6 +203,11 @@ def _calc_new_points_and_return_to_draw_discrete(level):
 
 
 def _calc_analysis_matrices_from_semiorthogonal_pq(j):
+    """
+    Calculates analysis matrix AB to given PQ retrieved from j
+    :param j:
+    :return:
+    """
     PQ=_calc_synthesis_matrices_linear_b_splines(j)
     #print("shapes: P: {}, Q: {}".format(P.shape, Q.shape))
 
@@ -196,6 +225,10 @@ def _calc_analysis_matrices_from_semiorthogonal_pq(j):
 
 
 def _calc_synthesis_matrices_linear_b_splines(j):
+    """
+    Generates synthesis matrix PQ for linear B-splines for given j.
+    Shape: 2^j+1 x 2^j+1
+    """
 
     norm=True
     #calc mat-sizes

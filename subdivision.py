@@ -1,14 +1,13 @@
+# Visual Computing: Wavelets for Computer Graphics
+# team01
+
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 from matplotlib.widgets import RadioButtons
 import numpy as np
 import math
 
-#TODO:
-# task 4 and 5
-
 def main():
-    #control_points_array = np.random.rand(10, 2)
     control_points_array = [[0.12043010752688174, 0.7251082251082251],
         [0.25806451612903225, 0.8777056277056279],
         [0.42258064516129035, 0.5876623376623378],
@@ -20,10 +19,8 @@ def main():
         [0.7516129032258064, 0.06709956709956713],
         [0.48602150537634414, 0.22077922077922082],
         [0.1870967741935484, 0.04112554112554115]]
-    print(control_points_array)
-    points_array=[]
-    #print(points_array)
-    render(control_points_array, points_array)
+
+    calc_and_render_subdivision(control_points_array)
     return
 
 def render_subdivision_step_update(control_points_array, points_array, step, ax):
@@ -76,7 +73,7 @@ def render_subdivision_step_update(control_points_array, points_array, step, ax)
     #ax.legend(legend, loc="lower right")
     return
 
-def render(control_points_array, points_array):
+def calc_and_render_subdivision(control_points_array):
     # controlpoints as dots
     # points as circles
     # curve as line (acc. 2.2)

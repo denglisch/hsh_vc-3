@@ -1,15 +1,19 @@
+# Visual Computing: Wavelets for Computer Graphics
+# team01
+
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 from matplotlib.widgets import RadioButtons
 import numpy as np
 import math
 
-
+#resolution of control-function (rendered dashed line)
 FUNCTION_DEPTH=50
-CP_DEPTH=5
+#resolution of control points (for calculation)
+CP_DEPTH=10
 
 def main():
-    render()
+    calc_and_render_subdivision()
     return
 
 def function1(x,x0=0):
@@ -82,7 +86,7 @@ def render_subdivision_step_update(function_points_array, control_points_array, 
                 ax.plot([from_p[0], to_p[0]], [from_p[1], to_p[1]], 'o', ms=2.0, ls='-', lw=1.0, color=c_p)
     return
 
-def render():
+def calc_and_render_subdivision():
     # controlpoints as dots
     # points as circles
     # curve as line (acc. 2.2)
@@ -173,9 +177,11 @@ def render():
     return
 
 def splitting_step_nonuniform(points_array):
+    #double array
     points_array=np.repeat(points_array,2,axis=0)
     # each point is now doubled
     cp_points_array = np.copy(points_array)
+    #average every second entry (control points will stay)
     for i, p in enumerate(points_array):
         if i<len(points_array)-1:
             if i%2==1:
@@ -183,45 +189,6 @@ def splitting_step_nonuniform(points_array):
                 cp_points_array[i]=0.5*(p+next_p)
     #pop last (doubled) element
     return cp_points_array[:-1]
-
-def subdivision_chaikin(points_array):
-    cp_points_array = np.copy(points_array)
-    for i, p in enumerate(points_array):
-        previous_p = p
-        next_p = points_array[i + 1] if i < len(points_array) - 1 else points_array[0]
-        cp_points_array[i] = 0.5 * (previous_p + next_p)
-    return cp_points_array
-
-def subdivision_daubechie(points_array):
-    cp_points_array = np.copy(points_array)
-    one_plus_sqrt3=1.0+math.sqrt(3)
-    one_minus_sqrt3=1.0-math.sqrt(3)
-    for i, p in enumerate(points_array):
-        previous_p = p
-        next_p = points_array[i + 1] if i < len(points_array) - 1 else points_array[0]
-        cp_points_array[i] = 0.5 * (one_plus_sqrt3*previous_p + one_minus_sqrt3*next_p)
-    return cp_points_array
-
-def subdivision_dlg(points_array):
-    cp_points_array = np.copy(points_array)
-    for i, p in enumerate(points_array):
-        #keep points from prevoius step
-        if i%2==1:
-            prev_prev_p = points_array[i - 2] if i > 0 else points_array[len(points_array) - 2]
-            prev_p = points_array[i - 1] if i > 0 else points_array[len(points_array) - 1]
-            next_p = points_array[i + 1] if i < len(points_array) - 1 else points_array[0]
-            next_next_p = points_array[i + 2] if i < len(points_array) - 1 else points_array[1]
-            cp_points_array[i] = 1.0/16 * (-2.0*prev_prev_p+5.0*prev_p+10.0*p+5.0*next_p + -2.0*next_next_p)
-    return cp_points_array
-
-def subdivision_b_spline_cubic(points_array):
-    cp_points_array = np.copy(points_array)
-    for i, p in enumerate(points_array):
-        previous_p = points_array[i - 1] if i > 0 else points_array[len(points_array) - 1]
-        mid = p
-        next_p = points_array[i + 1] if i < len(points_array) - 1 else points_array[0]
-        cp_points_array[i] = 0.25 * (previous_p + 2*mid + next_p)
-    return cp_points_array
 
 def subdivision_b_spline_cubic_uniform(points_array):
     cp_points_array = points_array
@@ -235,9 +202,10 @@ def subdivision_b_spline_cubic_uniform(points_array):
         mat_r[i,i]=2
         if i>0: mat_r[i,i-1]=1
         if i<c_size-1: mat_r[i,i+1]=1
+    #print(mat_r)
     mat_r*=1.0/4
 
-    #print(mat_r)
+    #apply on functions values
     points_array[:,1]=np.dot(mat_r,cp_points_array[:,1])
     return points_array
 
@@ -245,10 +213,11 @@ def subdivision_daubechie_uniform(points_array):
     cp_points_array = np.copy(points_array)
     one_plus_sqrt3=1.0+math.sqrt(3)
     one_minus_sqrt3=1.0-math.sqrt(3)
+
     for i, p in enumerate(points_array):
         if i<len(points_array)-1:
             next_p = points_array[i + 1]
-            cp_points_array[i] = 0.5 * (one_plus_sqrt3*p + one_minus_sqrt3*next_p)
+            cp_points_array[i,1] = 0.5 * (one_plus_sqrt3*p[1] + one_minus_sqrt3*next_p[1])
     return cp_points_array
 
 def subdivision_b_spline_cubic_nonuniform(points_array):
@@ -282,15 +251,10 @@ def subdivision_b_spline_cubic_nonuniform(points_array):
     mat_r[c_size-4,c_size-3]=3.0/2
     mat_r[c_size-4,c_size-4]=3.0/2
 
+    #print(mat_r)
     mat_r*=1.0/4
 
-    #print(mat_r)
     points_array[:,1]=np.dot(mat_r,cp_points_array[:,1])
-
-    #for i in range(0,c_size):
-        #if i%2==1:
-            #points_array[:,1]=cp_points_array[:,1]
-    #print(points_array)
 
     return points_array
 
@@ -300,7 +264,6 @@ def calc_subdivision(control_points_array, steps, subdivision_scheme_function=su
         #SPLITTING STEP
         points_array=splitting_step_nonuniform(points_array)
         #print(points_array)
-        #print(points_array.size)
 
         # AVG STEP
         points_array=subdivision_scheme_function(points_array)

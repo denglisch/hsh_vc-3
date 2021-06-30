@@ -1,3 +1,6 @@
+# Visual Computing: Wavelets for Computer Graphics
+# team01
+
 import numpy as np
 
 first_try=np.array([
