@@ -20,16 +20,17 @@ def main():
     crop_min_max = False
 
     image_pathes=["img/Lenna.png",
-                  "img/Mona_Bean.png"]
+                  "img/Mona_Bean.png",
+                  "img/Mona_Lisa.png"]
 
     # 1 & 2 Haar trafo
-    if True:
+    if False:
         Haar.kd_test_decomp_recon_on_1d_array()
-        decomp_and_recon(image_pathes[1], color=True, normalized=True, standard=False)
-        #decomp_and_recon_with_steps(image_pathes[1], color=False, normalized=True, standard=False, crop_min_max=False)
+        #decomp_and_recon(image_pathes[1], color=True, normalized=True, standard=False)
+        decomp_and_recon_with_steps(image_pathes[1], color=False, normalized=True, standard=False, crop_min_max=False)
         #decomp_and_recon_with_steps(image_pathes[1], color=True, normalized=False, standard=True, crop_min_max=True)
         #Green effect:
-        decomp_and_recon_with_steps(image_pathes[1], color=True, normalized=True, standard=True, crop_min_max=False)
+        #decomp_and_recon_with_steps(image_pathes[1], color=True, normalized=True, standard=True, crop_min_max=False)
 
     # 3 compression gray
     if False:
@@ -59,9 +60,9 @@ def main():
         save_as_image(image_values, outfile, yuv=True)
 
     # 5 IQA Preprocessing
-    if False:
+    if True:
         #gray
-        preprocessing(image_pathes[1],number_of_coeffs_left_exact=60)
+        preprocessing(image_pathes[2],number_of_coeffs_left_exact=60)
         #TODO If neccessary...
         #color
         #preprocessing(image_pathes[1],gray=False, yuv=True, number_of_coeffs_left_exact=60)
@@ -75,20 +76,19 @@ def preprocessing(image_path, gray=True, yuv=False, number_of_coeffs_left_exact=
     :param number_of_coeffs_left_exact: number of coefficiants that are not truncated in compression step
     """
     image_values = load_image_as_ndarray_float(image_path, gray=gray, yuv=yuv)
+    image_values/=255.0
     print("compression")
     image_values = Haar.compression_2d_only_decomp(image_values, number_of_coeffs_left_exact=number_of_coeffs_left_exact)
 
-    # TODO: HERE OR THERE?
     print("quantization")
-    # image_values[image_values<0]=-1
-    # image_values[image_values>=0]=1
+    tmp=image_values[0,0]
+    image_values[image_values<0]=-1
+    image_values[image_values>0]=1
+    image_values[0,0]=tmp
 
     print("reconstruction")
     image_values = Haar.reconstruction_2d(image_values, normalized=True, standard=True)
-
-    # TODO: HERE OR THERE?
-    image_values[image_values < 127] = 0
-    image_values[image_values >= 127] = 255
+    image_values*=255.0
 
     outfile=image_path
     if gray:

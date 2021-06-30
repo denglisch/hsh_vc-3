@@ -10,7 +10,7 @@ import math
 #resolution of control-function (rendered dashed line)
 FUNCTION_DEPTH=50
 #resolution of control points (for calculation)
-CP_DEPTH=10
+CP_DEPTH=5
 
 def main():
     calc_and_render_subdivision()

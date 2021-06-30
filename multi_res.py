@@ -30,7 +30,7 @@ def main():
     #init curve
     original_curve_points_array=curves_data.first_try
     original_curve_points_array=curves_data.fuzzy_line
-    #original_curve_points_array=curves_data.hello
+    original_curve_points_array=curves_data.hello
 
     #copy control curve
     cur_points=np.copy(original_curve_points_array)

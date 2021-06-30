@@ -68,6 +68,8 @@ def prepare_decomp_image_for_render(image_values, normalized, std, crop_min_max=
             print("- scale to min: {}, max: {}".format(extrem[0], extrem[1]))
 
     if color:# and decomp_img:
+        #decomp_image_values = decomp_image_values.astype(np.uint8)
+        #return decomp_image_values
         decomp_image_values = util.YUV2RGB(decomp_image_values).astype(np.uint8)
     else:
         decomp_image_values = decomp_image_values.astype(np.uint8)
