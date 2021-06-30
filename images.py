@@ -9,16 +9,6 @@ import matplotlib.pyplot as plt
 import math
 
 def main():
-    #exit(0)
-
-
-    color=True
-    #decomp/recon
-    norm = True
-    std = True
-    #postprocessing
-    crop_min_max = False
-
     image_pathes=["img/Lenna.png",
                   "img/Mona_Bean.png",
                   "img/Mona_Lisa.png"]
@@ -34,7 +24,7 @@ def main():
 
     # 3 compression gray
     if False:
-        infile=image_pathes[1]
+        infile=image_pathes[0]
         image_values=load_image_as_ndarray_float(infile, gray=True)
         print("compression")
         #image_values=compression(image_values, squared_error=20000000)
@@ -45,8 +35,8 @@ def main():
         save_as_image(image_values, outfile)
 
     # 4 compression yuv
-    if False:
-        infile=image_pathes[1]
+    if True:
+        infile=image_pathes[0]
         image_values=load_image_as_ndarray_float(infile, gray=False, yuv=True)
         print("compression")
         #total values 512*512*3=786.432
@@ -60,7 +50,7 @@ def main():
         save_as_image(image_values, outfile, yuv=True)
 
     # 5 IQA Preprocessing
-    if True:
+    if False:
         #gray
         preprocessing(image_pathes[2],number_of_coeffs_left_exact=60)
         #TODO If neccessary...
@@ -76,18 +66,22 @@ def preprocessing(image_path, gray=True, yuv=False, number_of_coeffs_left_exact=
     :param number_of_coeffs_left_exact: number of coefficiants that are not truncated in compression step
     """
     image_values = load_image_as_ndarray_float(image_path, gray=gray, yuv=yuv)
+    #normalize into [0,1] (already on floats)
     image_values/=255.0
     print("compression")
     image_values = Haar.compression_2d_only_decomp(image_values, number_of_coeffs_left_exact=number_of_coeffs_left_exact)
 
     print("quantization")
+    #save avg-brightness
     tmp=image_values[0,0]
     image_values[image_values<0]=-1
     image_values[image_values>0]=1
+    #apply avg-brightness
     image_values[0,0]=tmp
 
     print("reconstruction")
     image_values = Haar.reconstruction_2d(image_values, normalized=True, standard=True)
+    #undo range to [0,255]
     image_values*=255.0
 
     outfile=image_path
